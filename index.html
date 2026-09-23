@@ -26,6 +26,7 @@ select{border:1px solid #cfc7ba;background:var(--bg);color:inherit;border-radius
 </style>
 </head>
 <body>
+
 <div id="top">
 <button id="menu" title="Chapters">☰</button>
 <div id="title">Local EPUB Reader</div>
@@ -36,14 +37,25 @@ select{border:1px solid #cfc7ba;background:var(--bg);color:inherit;border-radius
 </div>
 <input id="file" type="file" accept=".epub,application/epub+zip">
 </div>
-<div id="drawer"><h3>Contents</h3><div id="toc" class="small">Open an EPUB to see its chapters.</div></div>
-<div id="drop"><div class="card">
+
+<div id="drawer">
+<h3>Contents</h3>
+<div id="toc" class="small">Open an EPUB to see its chapters.</div>
+</div>
+
+<div id="drop">
+<div class="card">
 <h1>📖 Local EPUB Reader</h1>
 <p>Drop an EPUB here, or choose one from your computer.</p>
 <button id="choose">Choose EPUB</button>
 <p class="small">Everything stays on this computer. No upload, account, or reader website.</p>
-</div></div>
-<main id="reader"><h1>Ready.</h1><p>Open an EPUB to begin reading.</p></main>
+</div>
+</div>
+
+<main id="reader">
+<h1>Ready.</h1>
+<p>Open an EPUB to begin reading.</p>
+</main>
 
 <script>
 const $=id=>document.getElementById(id);
@@ -52,9 +64,9 @@ let chapters=[], idx=0, font=20;
 $("openBtn").onclick=()=>$("file").click();
 $("choose").onclick=()=>$("file").click();
 
-$("file").addEventListener("change", async e=>{
+$("file").addEventListener("change", e=>{
   if(e.target.files && e.target.files[0]) {
-    await openBook(e.target.files[0]);
+    openBook(e.target.files[0]);
   }
 });
 
@@ -71,107 +83,146 @@ $("theme").onchange=e=>{
 };
 
 async function openBook(file){
- try{
-  $("title").textContent="Opening "+file.name+"…";
-  
-  if(typeof DecompressionStream === "undefined") {
-    throw Error("Your browser version is too old to extract zip files locally.");
-  }
-  
-  const ds = new DecompressionStream("gzip");
-  const reader = file.stream().getReader();
-  let chunks = [];
-  
-  while(true) {
-    const {done, value} = await reader.read();
-    if(done) break;
-    chunks.push(value);
-  }
-  
-  let totalLength = chunks.reduce((acc, val) => acc + val.length, 0);
-  let fileData = new Uint8Array(totalLength);
-  let offset = 0;
-  for(let chunk of chunks) {
-    fileData.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  let index = 0;
-  const manifest = {};
-  chapters = [];
-  let opfPath = "";
-
-  while (index < fileData.length - 30) {
-    let signature = fileData[index] | (fileData[index+1] << 8) | (fileData[index+2] << 16) | (fileData[index+3] << 24);
-    if (signature === 0x04034b50) {
-      let fileNameLen = fileData[index+26] | (fileData[index+27] << 8);
-      let extraLen = fileData[index+28] | (fileData[index+29] << 8);
-      let compSize = fileData[index+18] | (fileData[index+19] << 8) | (fileData[index+20] << 16) | (fileData[index+21] << 24);
+  try {
+    $("title").textContent = "Opening " + file.name + "…";
+    
+    // Read the raw file directly into memory as bytes
+    const arrayBuffer = await file.arrayBuffer();
+    const view = new DataView(arrayBuffer);
+    const u8 = new Uint8Array(arrayBuffer);
+    
+    let entries = {};
+    let offset = 0;
+    
+    // Parse Zip Structure Natively using raw binary scanning
+    while (offset < arrayBuffer.byteLength - 30) {
+      let sig = view.getUint32(offset, true);
       
-      let nameBuffer = fileData.subarray(index+30, index+30+fileNameLen);
-      let name = new TextDecoder().decode(nameBuffer);
-      let fileContentOffset = index + 30 + fileNameLen + extraLen;
-      let rawContent = fileData.subarray(fileContentOffset, fileContentOffset + compSize);
-      
-      let textContent = new TextDecoder().decode(rawContent);
-      
-      if(name.endsWith(".opf")) {
-        opfPath = name;
-        let itemMatches = textContent.matchAll(/<item\b[^>]*>/gi);
-        for(let match of itemMatches) {
-          let id = (match[0].match(/id\s*=\s*["']([^"']+)["']/i) || [])[1];
-          let href = (match[0].match(/href\s*=\s*["']([^"']+)["']/i) || [])[1];
-          let media = (match[0].match(/media-type\s*=\s*["']([^"']+)["']/i) || [])[1];
-          if(id && href) manifest[id] = {href: decodeURIComponent(href), media: media};
+      if (sig === 0x04034b50) { // Local File Header discovered
+        let compMethod = view.getUint16(offset + 8, true);
+        let compSize = view.getUint32(offset + 18, true);
+        let uncompSize = view.getUint32(offset + 22, true);
+        let nameLen = view.getUint16(offset + 26, true);
+        let extraLen = view.getUint16(offset + 28, true);
+        
+        let nameBuffer = u8.subarray(offset + 30, offset + 30 + nameLen);
+        let name = new TextDecoder().decode(nameBuffer);
+        let dataStart = offset + 30 + nameLen + extraLen;
+        let fileData = u8.subarray(dataStart, dataStart + compSize);
+        
+        // Decompress raw storage
+        if (compMethod === 0) { // Uncompressed plain text
+          entries[name] = fileData;
+        } else if (compMethod === 8) { // Deflate Compression
+          // Using modern native stream decompression engine
+          try {
+            const fStream = new ReadableStream({
+              start(controller) {
+                controller.enqueue(new Uint8Array([120, 156])); // Append zlib magic envelope header wrapper
+                controller.enqueue(fileData);
+                controller.close();
+              }
+            });
+            const decompressedStream = fStream.pipeThrough(new DecompressionStream("deflate"));
+            const response = new Response(decompressedStream);
+            const bufferResult = await response.arrayBuffer();
+            entries[name] = new Uint8Array(bufferResult);
+          } catch(streamErr) {
+            // Silence decompression faults to keep file crawler continuous
+          }
         }
+        offset = dataStart + compSize;
+      } else {
+        offset++;
       }
-      
-      if(name.endsWith(".xhtml") || name.endsWith(".html")) {
-        let cleanTitle = (textContent.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || "Chapter " + (chapters.length + 1);
-        chapters.push({html: textContent, name: cleanTitle.replace(/<[^>]*>/g, '').trim()});
-      }
-      
-      index = fileContentOffset + compSize;
-    } else {
-      index++;
     }
+    
+    // Scan structure map keys
+    let containerKey = Object.keys(entries).find(k => k.toLowerCase().endsWith("container.xml"));
+    if(!containerKey) throw Error("Structural verification container.xml missing.");
+    
+    const containerText = new TextDecoder().decode(entries[containerKey]);
+    const opfMatch = containerText.match(/full-path\s*=\s*["']([^"']+)["']/i);
+    if(!opfMatch) throw Error("Cannot trace book descriptor roadmap layout.");
+    
+    const opfPath = opfMatch[1];
+    if(!entries[opfPath]) throw Error("Book structural data content is inaccessible.");
+    
+    const opfText = new TextDecoder().decode(entries[opfPath]);
+    const basePath = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/") + 1) : "";
+    
+    const manifest = {};
+    let itemReg = /<item\b[^>]*>/gi, im;
+    while ((im = itemReg.exec(opfText)) !== null) {
+      let s = im[0];
+      let id = (s.match(/id\s*=\s*["']([^"']+)["']/i) || [])[1];
+      let href = (s.match(/href\s*=\s*["']([^"']+)["']/i) || [])[1];
+      let media = (s.match(/media-type\s*=\s*["']([^"']+)["']/i) || [])[1];
+      if(id && href) manifest[id] = { href: decodeURIComponent(href), media: media };
+    }
+    
+    chapters = [];
+    let refReg = /<itemref\b[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>/gi, rm;
+    while ((rm = refReg.exec(opfText)) !== null) {
+      let idref = rm[1];
+      let item = manifest[idref];
+      if(!item || !/xhtml|html|xml/i.test(item.media)) continue;
+      
+      let fullPath = norm(basePath + item.href);
+      let matchKey = Object.keys(entries).find(k => norm(k) === fullPath);
+      
+      if(matchKey && entries[matchKey]) {
+        let htmlText = new TextDecoder().decode(entries[matchKey]);
+        let cleanTitle = (htmlText.match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || 
+                         (htmlText.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || [])[1] || 
+                         "Chapter " + (chapters.length + 1);
+        
+        chapters.push({
+          html: htmlText,
+          name: cleanTitle.replace(/<[^>]*>/g, '').trim()
+        });
+      }
+    }
+    
+    if(!chapters.length) throw Error("No readable text nodes could be extracted.");
+    
+    $("title").textContent = file.name;
+    buildToc();
+    show(0);
+    $("drop").classList.add("hidden");
+    
+  } catch(e) {
+    $("title").textContent = "Local EPUB Reader";
+    alert("Error reading file: " + e.message);
   }
-
-  if(!chapters.length) throw Error("Could not find any readable HTML chapters inside this file package.");
-  
-  $("title").textContent=file.name;
-  buildToc();
-  show(0);
-  $("drop").classList.add("hidden");
- } catch(e) {
-  $("title").textContent="Local EPUB Reader";
-  alert("Error opening book file:\n\n" + e.message);
- }
 }
 
+function norm(p){let a=[];for(let x of p.split("/")){if(!x||x==".")continue;x===".."?a.pop():a.push(x)}return a.join("/")}
+
 function buildToc(){
- $("toc").innerHTML="";
- chapters.forEach((c,i)=>{
-  let b=document.createElement("button");
-  b.className="chapter"; b.textContent=c.name;
-  b.onclick=()=>{ show(i); $("drawer").classList.remove("open") };
-  $("toc").appendChild(b);
- });
+  $("toc").innerHTML = "";
+  chapters.forEach((c, i) => {
+    let b = document.createElement("button");
+    b.className = "chapter"; 
+    b.textContent = c.name;
+    b.onclick = () => { show(i); $("drawer").classList.remove("open") };
+    $("toc").appendChild(b);
+  });
 }
 
 function show(i){
- idx=i;
- let d=new DOMParser().parseFromString(chapters[i].html,"text/html");
- $("reader").innerHTML="";
- [...d.body.childNodes].forEach(n=>$("reader").appendChild(document.importNode(n,true)));
- $("reader").style.fontSize=font+"px";
- scrollTo(0,0);
- [...document.querySelectorAll(".chapter")].forEach((b,j)=>b.classList.toggle("active",j===i));
+  idx = i;
+  let d = new DOMParser().parseFromString(chapters[i].html, "text/html");
+  $("reader").innerHTML = "";
+  [...d.body.childNodes].forEach(n => $("reader").appendChild(document.importNode(n, true)));
+  $("reader").style.fontSize = font + "px";
+  scrollTo(0,0);
+  [...document.querySelectorAll(".chapter")].forEach((b, j) => b.classList.toggle("active", j === i));
 }
 
-document.addEventListener("keydown",e=>{
- if(e.key==="ArrowRight"&&chapters.length) show(Math.min(idx+1,chapters.length-1));
- if(e.key==="ArrowLeft"&&chapters.length) show(Math.max(idx-1,0));
+document.addEventListener("keydown", e => {
+  if(e.key === "ArrowRight" && chapters.length) show(Math.min(idx + 1, chapters.length - 1));
+  if(e.key === "ArrowLeft" && chapters.length) show(Math.max(idx - 1, 0));
 });
 </script>
 </body>
