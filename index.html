@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Local EPUB Reader</title>
+<style>
+:root{--bg:#f7f3ea;--fg:#292723;--muted:#77716a;--panel:#eee9df;--accent:#6558c8;--paper:#fffdf8}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+#top{height:58px;display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--panel);border-bottom:1px solid #ddd6ca;position:sticky;top:0;z-index:5}
+button,input,select{font:inherit} button{border:0;border-radius:9px;padding:8px 11px;background:transparent;color:inherit;cursor:pointer} button:hover{background:#ddd7cd}
+#title{font-weight:650;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#reader{max-width:820px;margin:0 auto;padding:42px 28px 90px;line-height:1.75;font-family:Georgia,serif;font-size:20px}
+#reader h1,#reader h2,#reader h3{line-height:1.25;font-family:Georgia,serif}
+#reader img{max-width:100%;height:auto}
+#reader a{color:var(--accent)}
+#reader p{text-align:left}
+#drop{position:fixed;inset:58px 0 0;background:rgba(247,243,234,.96);display:flex;align-items:center;justify-content:center;z-index:10}
+#drop.hidden{display:none}.card{text-align:center;border:2px dashed #aaa;border-radius:18px;padding:55px 70px;max-width:620px}
+#file{display:none}.small{color:var(--muted);font-size:13px}
+#drawer{position:fixed;top:58px;left:0;bottom:0;width:330px;background:var(--panel);box-shadow:5px 0 20px #0002;z-index:8;padding:18px;overflow:auto;transform:translateX(-105%);transition:.18s}
+#drawer.open{transform:none}.chapter{display:block;width:100%;text-align:left;padding:9px 10px;border-radius:8px}.chapter.active{background:#d8d1f1}
+#settings{display:flex;gap:4px;align-items:center}
+select{border:1px solid #cfc7ba;background:var(--bg);color:inherit;border-radius:8px;padding:7px}
+@media(max-width:600px){#reader{padding:28px 18px 70px;font-size:18px}.card{padding:40px 20px;margin:15px}}
+</style>
+</head>
+<body>
+<div id="top">
+<button id="menu" title="Chapters">☰</button>
+<div id="title">Local EPUB Reader</div>
+<button id="openBtn">📂 Open EPUB</button>
+<div id="settings">
+<button id="minus">A−</button><button id="plus">A+</button>
+<select id="theme" title="Theme"><option value="cream">Cream</option><option value="white">White</option><option value="dark">Dark</option><option value="sepia">Sepia</option></select>
+</div>
+<input id="file" type="file" accept=".epub,application/epub+zip">
+</div>
+<div id="drawer"><h3>Contents</h3><div id="toc" class="small">Open an EPUB to see its chapters.</div></div>
+<div id="drop"><div class="card">
+<h1>📖 Local EPUB Reader</h1>
+<p>Drop an EPUB here, or choose one from your computer.</p>
+<button id="choose">Choose EPUB</button>
+<p class="small">Everything stays on this computer. No upload, account, or reader website.</p>
+</div></div>
+<main id="reader"><h1>Ready.</h1><p>Open an EPUB to begin reading.</p></main>
+
+<script src="https://raw.githubusercontent.com/Stuk/jszip/v3.10.1/dist/jszip.min.js"></script>
+<script>
+if(!window.JSZip)document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>');
+const $=id=>document.getElementById(id); let chapters=[],idx=0,font=20;
+$("openBtn").onclick=()=>$("file").click(); $("choose").onclick=()=>$("file").click();
+$("file").addEventListener("change",e=>{if(e.target.files[0])openBook(e.target.files[0])});
+$("menu").onclick=()=>$("drawer").classList.toggle("open");
+$("plus").onclick=()=>{font=Math.min(34,font+1);reader.style.fontSize=font+"px"};
+$("minus").onclick=()=>{font=Math.max(14,font-1);reader.style.fontSize=font+"px"};
+$("theme").onchange=e=>{let v=e.target.value,s=v==="dark"?["#181716","#eeeae3","#292723"]:v==="white"?["#fff","#222","#eee"]:v==="sepia"?["#f1e3c5","#4a3b28","#e2d0aa"]:["#f7f3ea","#292723","#eee9df"];document.documentElement.style.setProperty("--bg",s[0]);document.documentElement.style.setProperty("--fg",s[1]);document.documentElement.style.setProperty("--panel",s[2])};
+async function openBook(file){
+ try{
+  if(!window.JSZip)throw Error("The EPUB engine could not load. Your office network may be blocking it.");
+  title.textContent="Opening "+file.name+"…";
+  const zip=await JSZip.loadAsync(file), container=await zip.file("META-INF/container.xml").async("text");
+  const opfPath=(container.match(/full-path\s*=\s*["']([^"']+)["']/i)||[])[1]; if(!opfPath)throw Error("Invalid EPUB.");
+  const opf=await zip.file(opfPath).async("text"),base=opfPath.includes("/")?opfPath.slice(0,opfPath.lastIndexOf("/")+1):"",manifest={};
+  for(const m of opf.matchAll(/<item\b[^>]*>/gi)){let s=m[0],id=attr(s,"id"),href=attr(s,"href"),media=attr(s,"media-type");if(id&&href)manifest[id]={href:decodeURIComponent(href),media}};
+  chapters=[];
+  for(const m of opf.matchAll(/<itemref\b[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>/gi)){let x=manifest[m[1]];if(!x||!/xhtml|html/i.test(x.media))continue;let p=norm(base+x.href),z=zip.file(p);if(z)chapters.push({html:await z.async("text"),name:"Chapter "+(chapters.length+1)})}
+  if(!chapters.length)throw Error("No readable chapters found.");
+  chapters.forEach(c=>{let h=(c.html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||(c.html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)||[])[1];if(h)c.name=strip(h)});
+  title.textContent=file.name;buildToc();show(0);drop.classList.add("hidden");
+ }catch(e){title.textContent="Local EPUB Reader";alert("Could not open this EPUB.\n\n"+e.message)}
+}
+function attr(s,n){let m=s.match(new RegExp(n+'\\s*=\\s*["\\']([^"\\']+)["\\']',"i"));return m&&m[1]}
+function strip(s){let d=document.createElement("div");d.innerHTML=s;return d.textContent.trim()}
+function norm(p){let a=[];for(let x of p.split("/")){if(!x||x==".")continue;x===".."?a.pop():a.push(x)}return a.join("/")}
+function buildToc(){toc.innerHTML="";chapters.forEach((c,i)=>{let b=document.createElement("button");b.className="chapter";b.textContent=c.name;b.onclick=()=>{show(i);drawer.classList.remove("open")};toc.appendChild(b)})}
+function show(i){idx=i;let d=new DOMParser().parseFromString(chapters[i].html,"text/html");reader.innerHTML="";[...d.body.childNodes].forEach(n=>reader.appendChild(document.importNode(n,true)));reader.style.fontSize=font+"px";scrollTo(0,0);[...document.querySelectorAll(".chapter")].forEach((b,j)=>b.classList.toggle("active",j===i))}
+document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"&&chapters.length)show(Math.min(idx+1,chapters.length-1));if(e.key==="ArrowLeft"&&chapters.length)show(Math.max(idx-1,0));});
+</script>
+</body>
+</html>
