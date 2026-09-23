@@ -149,7 +149,7 @@ body[data-theme="dark"] .chapter:hover { background: rgba(255,255,255,0.05); }
       <button id="menu" title="Table of Contents">☰</button>
       <div id="title">Local EPUB Reader</div>
     </div>
-        <div class="nav-group">
+     <div class="nav-group">
       <button id="fullscreen-btn" title="Toggle Fullscreen">⛶</button>
       <div class="dropdown" id="settings-dropdown">
         <button id="settings-btn" title="Reading Settings">Aa</button>
@@ -220,7 +220,71 @@ body[data-theme="dark"] .chapter:hover { background: rgba(255,255,255,0.05); }
 <input id="file" type="file" accept=".epub,application/epub+zip">
 
 <script>
-async function decompressDeflate(compressedBytes) {
+const $=id=>document.getElementById(id);
+let chapters=[], idx=0, currentColumnPage=0, totalColumnPages=0, resizeTimeout=null;
+
+const config = {
+  get size() { return parseInt(localStorage.getItem("epub-font-size") || "20"); },
+  set size(v) { localStorage.setItem("epub-font-size", v); this.apply(); },
+  get space() { return localStorage.getItem("epub-line-height") || "1.6"; },
+  set space(v) { localStorage.setItem("epub-line-height", v); this.apply(); },
+  get width() { return localStorage.getItem("epub-reader-width") || "800px"; },
+  set width(v) { localStorage.setItem("epub-reader-width", v); this.apply(); },
+  get theme() { return localStorage.getItem("epub-theme") || "cream"; },
+  set theme(v) { localStorage.setItem("epub-theme", v); this.apply(); },
+  apply() {
+    document.documentElement.style.setProperty("--reader-font-size", this.size + "px");
+    document.documentElement.style.setProperty("--reader-line-height", this.space);
+    document.documentElement.style.setProperty("--reader-width", this.width);
+    document.body.setAttribute("data-theme", this.theme);
+    document.querySelectorAll(".theme-btn").forEach(b => b.classList.toggle("active", b.dataset.val === this.theme));
+    document.querySelectorAll("#space-low, #space-med, #space-high").forEach(b => b.classList.toggle("active", b.dataset.val === this.space));
+    document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b => b.classList.toggle("active", b.dataset.val === this.width));
+    document.body.className = "theme-" + this.theme;
+    updatePaginationMeasurements();
+  }
+};
+
+$("choose").onclick=()=>$("file").click();
+$("file").addEventListener("change", e=>{ if(e.target.files && e.target.files) openBook(e.target.files); });
+$("menu").onclick=(e)=>{ e.stopPropagation(); $("drawer").classList.toggle("open"); };
+$("drawer-backdrop").onclick=()=>$("drawer").classList.remove("open");
+$("settings-btn").onclick=(e)=>{ e.stopPropagation(); $("settings-dropdown").classList.toggle("open"); };
+document.onclick=()=> { $("settings-dropdown").classList.remove("open"); };
+$("settings-dropdown").onclick=(e)=>e.stopPropagation();
+$("font-increase").onclick=()=>{ config.size = Math.min(36, config.size + 1); };
+$("font-decrease").onclick=()=>{ config.size = Math.max(14, config.size - 1); };
+document.querySelectorAll(".theme-btn").forEach(b => b.onclick=()=> { config.theme = b.dataset.val; });
+document.querySelectorAll("#space-low, #space-med, #space-high").forEach(b => b.onclick=()=> { config.space = b.dataset.val; });
+document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b => b.onclick=()=> { config.width = b.dataset.val; });
+
+$("fullscreen-btn").onclick=()=> {
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
+  else document.exitFullscreen();
+};
+
+$("zone-left").onclick=(e)=>{ e.stopPropagation(); navigatePage(-1); };
+$("zone-right").onclick=(e)=>{ e.stopPropagation(); navigatePage(1); };
+$("viewport").onclick=()=> { document.body.classList.toggle("app-hidden"); };
+
+document.addEventListener("keydown", e=>{
+  if (e.key === "ArrowRight" || e.key === " ") { navigatePage(1); document.body.classList.add("app-hidden"); }
+  if (e.key === "ArrowLeft") { navigatePage(-1); document.body.classList.add("app-hidden"); }
+  if (e.key === "Escape") document.body.classList.remove("app-hidden");
+});
+
+let touchStartX = 0, touchEndX = 0;
+$("viewport").addEventListener("touchstart", e => { touchStartX = e.changedTouches.screenX; }, {passive: true});
+$("viewport").addEventListener("touchend", e => {
+  touchEndX = e.changedTouches.screenX;
+  let sweepDistance = touchEndX - touchStartX;
+  if (Math.abs(sweepDistance) > 60) {
+    if (sweepDistance > 0) navigatePage(-1);
+    else navigatePage(1);
+    document.body.classList.add("app-hidden");
+  }
+}, {passive: true});
+  async function decompressDeflate(compressedBytes) {
   const stream = new ReadableStream({
     start(controller) { controller.enqueue(compressedBytes); controller.close(); }
   }).pipeThrough(new DecompressionStream("deflate-raw"));
@@ -231,7 +295,7 @@ async function decompressDeflate(compressedBytes) {
 
 async function openBook(file){
   try {
-    $("title").textContent = "Opening " + file.name + "…";
+    \$("title").textContent = "Opening " + file.name + "…";
     const arrayBuffer = await file.arrayBuffer(), view = new DataView(arrayBuffer), u8 = new Uint8Array(arrayBuffer);
     let entries = {}, offset = 0;
     while (offset < arrayBuffer.byteLength - 30) {
@@ -300,72 +364,13 @@ async function openBook(file){
       idx = parseInt(parts) || 0; currentColumnPage = parseInt(parts) || 0;
     } else { idx = 0; currentColumnPage = 0; }
     show(idx, true);
-    $("drop").classList.add("hidden");
+    \$("drop").classList.add("hidden");
     document.body.classList.add("app-hidden");
   } catch(e) {
-    $("title").textContent = "Local EPUB Reader";
+    \$("title").textContent = "Local EPUB Reader";
     alert("Error reading file: " + e.message);
   }
 }
-
-const $=id=>document.getElementById(id);
-let chapters=[], idx=0, currentColumnPage=0, totalColumnPages=0, resizeTimeout=null;
-const config = {
-  get size() { return parseInt(localStorage.getItem("epub-font-size") || "20"); },
-  set size(v) { localStorage.setItem("epub-font-size", v); this.apply(); },
-  get space() { return localStorage.getItem("epub-line-height") || "1.6"; },
-  set space(v) { localStorage.setItem("epub-line-height", v); this.apply(); },
-  get width() { return localStorage.getItem("epub-reader-width") || "800px"; },
-  set width(v) { localStorage.setItem("epub-reader-width", v); this.apply(); },
-  get theme() { return localStorage.getItem("epub-theme") || "cream"; },
-  set theme(v) { localStorage.setItem("epub-theme", v); this.apply(); },
-  apply() {
-    document.documentElement.style.setProperty("--reader-font-size", this.size + "px");
-    document.documentElement.style.setProperty("--reader-line-height", this.space);
-    document.documentElement.style.setProperty("--reader-width", this.width);
-    document.body.setAttribute("data-theme", this.theme);
-    document.querySelectorAll(".theme-btn").forEach(b => b.classList.toggle("active", b.dataset.val === this.theme));
-    document.querySelectorAll("#space-low, #space-med, #space-high").forEach(b => b.classList.toggle("active", b.dataset.val === this.space));
-    document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b => b.classList.toggle("active", b.dataset.val === this.width));
-    document.body.className = "theme-" + this.theme;
-    updatePaginationMeasurements();
-  }
-};
-("choose").onclick=()=>("file").click();
-\$("file").addEventListener("change", e=>{ if(e.target.files && e.target.files) openBook(e.target.files); });
-("menu").onclick=(e)=> e.stopPropagation(); ("drawer").classList.toggle("open"); };
-("drawer-backdrop").onclick=()=>("drawer").classList.remove("open");
-("settings-btn").onclick=(e)=> e.stopPropagation(); ("settings-dropdown").classList.toggle("open"); };
-document.onclick=()=> { \$("settings-dropdown").classList.remove("open"); };
-\$("settings-dropdown").onclick=(e)=>e.stopPropagation();
-\$("font-increase").onclick=()=>{ config.size = Math.min(36, config.size + 1); };
-\$("font-decrease").onclick=()=>{ config.size = Math.max(14, config.size - 1); };
-document.querySelectorAll(".theme-btn").forEach(b => b.onclick=()=> { config.theme = b.dataset.val; });
-document.querySelectorAll("#space-low, #space-med, #space-high").forEach(b => b.onclick=()=> { config.space = b.dataset.val; });
-document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b => b.onclick=()=> { config.width = b.dataset.val; });
-\$("fullscreen-btn").onclick=()=> {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{});
-  else document.exitFullscreen();
-};
-\$("zone-left").onclick=(e)=>{ e.stopPropagation(); navigatePage(-1); };
-\$("zone-right").onclick=(e)=>{ e.stopPropagation(); navigatePage(1); };
-\$("viewport").onclick=()=> { document.body.classList.toggle("app-hidden"); };
-document.addEventListener("keydown", e=>{
-  if (e.key === "ArrowRight" || e.key === " ") { navigatePage(1); document.body.classList.add("app-hidden"); }
-  if (e.key === "ArrowLeft") { navigatePage(-1); document.body.classList.add("app-hidden"); }
-  if (e.key === "Escape") document.body.classList.remove("app-hidden");
-});
-let touchStartX = 0, touchEndX = 0;
-\$("viewport").addEventListener("touchstart", e => { touchStartX = e.changedTouches.screenX; }, {passive: true});
-\$("viewport").addEventListener("touchend", e => {
-  touchEndX = e.changedTouches.screenX;
-  let sweepDistance = touchEndX - touchStartX;
-  if (Math.abs(sweepDistance) > 60) {
-    if (sweepDistance > 0) navigatePage(-1);
-    else navigatePage(1);
-    document.body.classList.add("app-hidden");
-  }
-}, {passive: true});
 
 function strip(s){let d=document.createElement("div");d.innerHTML=s;return d.textContent.trim()}
 function norm(p){let a=[];for(let x of p.replace(/\\/g, '/').split("/")){if(!x||x==".")continue;x===".."?a.pop():a.push(x)}return a.join("/")}
