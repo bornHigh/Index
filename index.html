@@ -45,37 +45,6 @@ select{border:1px solid #cfc7ba;background:var(--bg);color:inherit;border-radius
 </div></div>
 <main id="reader"><h1>Ready.</h1><p>Open an EPUB to begin reading.</p></main>
 
-<script src="https://raw.githubusercontent.com/Stuk/jszip/v3.10.1/dist/jszip.min.js"></script>
+<!-- JSZip 3.10.1 Engine embedded locally to bypass security policies -->
 <script>
-if(!window.JSZip)document.write('<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"><\/script>');
-const $=id=>document.getElementById(id); let chapters=[],idx=0,font=20;
-$("openBtn").onclick=()=>$("file").click(); $("choose").onclick=()=>$("file").click();
-$("file").addEventListener("change",e=>{if(e.target.files[0])openBook(e.target.files[0])});
-$("menu").onclick=()=>$("drawer").classList.toggle("open");
-$("plus").onclick=()=>{font=Math.min(34,font+1);reader.style.fontSize=font+"px"};
-$("minus").onclick=()=>{font=Math.max(14,font-1);reader.style.fontSize=font+"px"};
-$("theme").onchange=e=>{let v=e.target.value,s=v==="dark"?["#181716","#eeeae3","#292723"]:v==="white"?["#fff","#222","#eee"]:v==="sepia"?["#f1e3c5","#4a3b28","#e2d0aa"]:["#f7f3ea","#292723","#eee9df"];document.documentElement.style.setProperty("--bg",s[0]);document.documentElement.style.setProperty("--fg",s[1]);document.documentElement.style.setProperty("--panel",s[2])};
-async function openBook(file){
- try{
-  if(!window.JSZip)throw Error("The EPUB engine could not load. Your office network may be blocking it.");
-  title.textContent="Opening "+file.name+"…";
-  const zip=await JSZip.loadAsync(file), container=await zip.file("META-INF/container.xml").async("text");
-  const opfPath=(container.match(/full-path\s*=\s*["']([^"']+)["']/i)||[])[1]; if(!opfPath)throw Error("Invalid EPUB.");
-  const opf=await zip.file(opfPath).async("text"),base=opfPath.includes("/")?opfPath.slice(0,opfPath.lastIndexOf("/")+1):"",manifest={};
-  for(const m of opf.matchAll(/<item\b[^>]*>/gi)){let s=m[0],id=attr(s,"id"),href=attr(s,"href"),media=attr(s,"media-type");if(id&&href)manifest[id]={href:decodeURIComponent(href),media}};
-  chapters=[];
-  for(const m of opf.matchAll(/<itemref\b[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>/gi)){let x=manifest[m[1]];if(!x||!/xhtml|html/i.test(x.media))continue;let p=norm(base+x.href),z=zip.file(p);if(z)chapters.push({html:await z.async("text"),name:"Chapter "+(chapters.length+1)})}
-  if(!chapters.length)throw Error("No readable chapters found.");
-  chapters.forEach(c=>{let h=(c.html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)||[])[1]||(c.html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)||[])[1];if(h)c.name=strip(h)});
-  title.textContent=file.name;buildToc();show(0);drop.classList.add("hidden");
- }catch(e){title.textContent="Local EPUB Reader";alert("Could not open this EPUB.\n\n"+e.message)}
-}
-function attr(s,n){let m=s.match(new RegExp(n+'\\s*=\\s*["\\']([^"\\']+)["\\']',"i"));return m&&m[1]}
-function strip(s){let d=document.createElement("div");d.innerHTML=s;return d.textContent.trim()}
-function norm(p){let a=[];for(let x of p.split("/")){if(!x||x==".")continue;x===".."?a.pop():a.push(x)}return a.join("/")}
-function buildToc(){toc.innerHTML="";chapters.forEach((c,i)=>{let b=document.createElement("button");b.className="chapter";b.textContent=c.name;b.onclick=()=>{show(i);drawer.classList.remove("open")};toc.appendChild(b)})}
-function show(i){idx=i;let d=new DOMParser().parseFromString(chapters[i].html,"text/html");reader.innerHTML="";[...d.body.childNodes].forEach(n=>reader.appendChild(document.importNode(n,true)));reader.style.fontSize=font+"px";scrollTo(0,0);[...document.querySelectorAll(".chapter")].forEach((b,j)=>b.classList.toggle("active",j===i))}
-document.addEventListener("keydown",e=>{if(e.key==="ArrowRight"&&chapters.length)show(Math.min(idx+1,chapters.length-1));if(e.key==="ArrowLeft"&&chapters.length)show(Math.max(idx-1,0));});
-</script>
-</body>
-</html>
+/*! JSZip v3.10.1 - Stuart Knightley - http://stuartk.com */
