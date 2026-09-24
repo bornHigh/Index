@@ -1,84 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Local EPUB Reader</title>
-<style>
-:root {
-  --bg-cream: #f7f3ea; --fg-cream: #292723; --panel-cream: #eee9df; --border-cream: #ddd6ca; --accent-cream: #6558c8;
-  --bg-white: #ffffff; --fg-white: #222222; --panel-white: #f4f4f4; --border-white: #e0e0e0; --accent-white: #5244cc;
-  --bg-dark: #181716;  --fg-dark: #eeeae3;  --panel-dark: #242321;  --border-dark: #3a3835;  --accent-dark: #9d94ff;
-  --bg-sepia: #f4ecd8; --fg-sepia: #5b4636; --panel-sepia: #e8dcbf; --border-sepia: #dac9a6; --accent-sepia: #b85a1c;
-  --bg: var(--bg-cream); --fg: var(--fg-cream); --panel: var(--panel-cream); --border: var(--border-cream); --accent: var(--accent-cream);
-  --font-serif: "Georgia", serif; --font-sans: system-ui, -apple-system, sans-serif;
-  --reader-width: 800px; --reader-font-size: 20px; --reader-line-height: 1.6;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body, html { height: 100%; overflow: hidden; background: var(--bg); color: var(--fg); font-family: var(--font-sans); transition: background 0.2s, color 0.2s; }
-body[data-theme="cream"] { --bg: var(--bg-cream); --fg: var(--fg-cream); --panel: var(--panel-cream); --border: var(--border-cream); --accent: var(--accent-cream); }
-body[data-theme="white"] { --bg: var(--bg-white); --fg: var(--fg-white); --panel: var(--panel-white); --border: var(--border-white); --accent: var(--accent-white); }
-body[data-theme="sepia"] { --bg: var(--bg-sepia); --fg: var(--fg-sepia); --panel: var(--panel-sepia); --border: var(--border-sepia); --accent: var(--accent-sepia); }
-body[data-theme="dark"] { --bg: var(--bg-dark); --fg: var(--fg-dark); --panel: var(--panel-dark); --border: var(--border-dark); --accent: var(--accent-dark); }
-#app { display: flex; flex-direction: column; height: 100%; position: relative; }
-.bar { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--border); position: absolute; left: 0; right: 0; z-index: 100; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
-#top-bar { top: 0; } #bottom-bar { bottom: 0; top: auto; border-bottom: none; border-top: 1px solid var(--border); height: 48px; justify-content: center; }
-.app-hidden .bar#top-bar { transform: translateY(-100%); } .app-hidden .bar#bottom-bar { transform: translateY(100%); }
-.nav-group { display: flex; align-items: center; gap: 8px; }
-#title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
-button { font: inherit; background: transparent; border: 0; color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; outline: none; transition: background 0.15s; width: 40px; height: 40px; }
-button:hover { background: rgba(0,0,0,0.06); } body[data-theme="dark"] button:hover { background: rgba(255,255,255,0.08); } button.active { color: var(--accent); background: rgba(0,0,0,0.04); }
-.dropdown { position: relative; } .dropdown-content { display: none; position: absolute; right: 0; top: 48px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 110; flex-direction: column; gap: 14px; }
-.dropdown.open .dropdown-content { display: flex; } .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; } .control-row span { font-size: 13px; font-weight: 500; opacity: 0.8; }
-.segmented-control { display: flex; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 8px; width: 140px; } body[data-theme="dark"] .segmented-control { background: rgba(255,255,255,0.05); } .segmented-control button { flex: 1; height: 32px; font-size: 13px; border-radius: 6px; } .segmented-control button.active { background: var(--bg); color: var(--fg); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
-.theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 140px; } .theme-btn { width: 100%; height: 32px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; font-weight: 600; }
-.theme-btn[data-val="cream"] { background: var(--bg-cream); color: var(--fg-cream); } .theme-btn[data-val="white"] { background: var(--bg-white); color: var(--fg-white); } .theme-btn[data-val="dark"] { background: var(--bg-dark); color: var(--fg-dark); } .theme-btn[data-val="sepia"] { background: var(--bg-sepia); color: var(--fg-sepia); } .theme-btn.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-#viewport { flex: 1; position: relative; margin-top: 56px; margin-bottom: 48px; display: flex; justify-content: center; align-items: center; overflow: hidden; width: 100%; height: 100%; } .app-hidden #viewport { margin-top: 0; margin-bottom: 0; }
-#reader-frame { width: var(--reader-width); height: 100%; max-width: 90vw; padding: 40px 0; overflow: hidden; position: relative; z-index: 10; }
-#reader { height: 100%; column-fill: auto; column-gap: 60px; column-width: calc(var(--reader-width)); font-family: var(--font-serif); font-size: var(--reader-font-size); line-height: var(--reader-line-height); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
-#reader p { text-align: justify; margin-bottom: 1.25em; text-indent: 1.5em; } #reader p:first-of-type, #reader h1 + p, #reader h2 + p, #reader h3 + p { text-indent: 0; } #reader h1, #reader h2, #reader h3 { font-family: var(--font-sans); margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2; break-after: avoid; } #reader img { max-width: 100%; height: auto; max-height: 70vh; object-fit: contain; display: block; margin: 1em auto; break-inside: avoid; }
-.click-zone { position: absolute; top: 56px; bottom: 48px; width: 20%; z-index: 5; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; } .app-hidden .click-zone { top: 0; bottom: 0; width: 25%; z-index: 15; } .click-zone:hover { opacity: 0.2; background: rgba(0,0,0,0.1); } body[data-theme="dark"] .click-zone:hover { background: rgba(255,255,255,0.1); } #zone-left { left: 0; } #zone-right { right: 0; } .zone-arrow { font-size: 48px; font-weight: 300; pointer-events: none; }
-#drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 320px; background: var(--panel); border-right: 1px solid var(--border); box-shadow: 10px 0 30px rgba(0,0,0,0.05); z-index: 200; padding: 24px 16px; overflow-y: auto; transform: translateX(-100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 16px; } #drawer.open { transform: translateX(0); } #drawer-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 199; } #drawer.open + #drawer-backdrop { display: block; }
-#toc { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 2px; } .chapter { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 0; background: transparent; color: inherit; } .chapter:hover { background: rgba(0,0,0,0.04); } body[data-theme="dark"] .chapter:hover { background: rgba(255,255,255,0.05); } .chapter.active { background: var(--accent); color: #fff; }
-#progress-text { font-size: 12px; font-weight: 600; opacity: 0.7; letter-spacing: 0.5px; }
-#drop { position: fixed; inset: 0; background: linear-gradient(135deg, var(--bg-cream), var(--panel-cream)); display: flex; align-items: center; justify-content: center; z-index: 300; padding: 24px; transition: background 0.3s; } body[data-theme="dark"] #drop { background: linear-gradient(135deg, var(--bg-dark), var(--panel-dark)); }
-.card { text-align: center; border: 2px dashed var(--border); border-radius: 20px; padding: 56px 40px; max-width: 480px; width: 100%; background: rgba(255,255,255,0.4); backdrop-filter: blur(10px); box-shadow: 0 20px 40px rgba(0,0,0,0.06); } body[data-theme="dark"] .card { background: rgba(0,0,0,0.2); box-shadow: 0 20px 40px rgba(0,0,0,0.3); } .card h1 { font-size: 26px; margin-bottom: 12px; font-weight: 700; letter-spacing: -0.5px; } .card p { font-size: 15px; opacity: 0.7; margin-bottom: 32px; line-height: 1.5; }
-#choose { background: var(--accent-white); color: #fff; padding: 12px 28px; font-weight: 600; border-radius: 10px; font-size: 15px; border: 0; transition: transform 0.15s, opacity 0.15s; box-shadow: 0 4px 12px rgba(82,68,204,0.3); width: auto; height: auto; display: inline-flex; } #choose:hover { transform: translateY(-1px); opacity: 0.95; } #choose:active { transform: translateY(1px); } .small { font-size: 12px !important; opacity: 0.5 !important; margin-top: 24px; margin-bottom: 0 !important; }
-#file { display: none; }
-@media (max-width: 900px) { #reader-frame { width: 100%; max-width: 100%; padding: 32px 20px; } #reader { column-gap: 40px; column-width: calc(100vw - 40px); } .click-zone { width: 25%; } }
-</style>
-</head>
-<body>
-<div id="app">
-  <div id="top-bar" class="bar">
-    <div class="nav-group">
-      <button id="menu" title="Table of Contents">☰</button>
-      <div id="title">Local EPUB Reader</div>
-    </div>
-    <div class="nav-group">
-      <button id="fullscreen-btn" title="Toggle Fullscreen">⛶</button>
-      <div class="dropdown" id="settings-dropdown">
-        <button id="settings-btn" title="Reading Settings">Aa</button>
-        <div class="dropdown-content">
-          <div class="control-row"><span>Theme</span><div class="theme-grid"><button class="theme-btn" data-val="cream">Cream</button><button class="theme-btn" data-val="white">White</button><button class="theme-btn" data-val="sepia">Sepia</button><button class="theme-btn" data-val="dark">Dark</button></div></div>
-          <div class="control-row"><span>Size</span><div class="segmented-control"><button id="font-decrease">A-</button><button id="font-increase">A+</button></div></div>
-          <div class="control-row"><span>Spacing</span><div class="segmented-control"><button id="space-low" data-val="1.4">Low</button><button id="space-med" data-val="1.6">Med</button><button id="space-high" data-val="1.9">High</button></div></div>
-          <div class="control-row"><span>Width</span><div class="segmented-control"><button id="width-narrow" data-val="640px">Thin</button><button id="width-normal" data-val="800px">Med</button><button id="width-wide" data-val="1000px">Wide</button></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="viewport">
-    <div id="zone-left" class="click-zone"><span class="zone-arrow">‹</span></div>
-    <div id="reader-frame"><div id="reader"><h1>Ready.</h1><p>Open an EPUB file archive to initialize document parsing operations.</p></div></div>
-    <div id="zone-right" class="click-zone"><span class="zone-arrow">›</span></div>
-  </div>
-  <div id="bottom-bar" class="bar"><div id="progress-text">Page 0 of 0</div></div>
-</div>
-<div id="drawer"><h2>Contents</h2><div id="toc"></div></div>
-<div id="drawer-backdrop"></div>
-<div id="drop"><div class="card"><h1>📖 Local EPUB Reader</h1><p>Drop an EPUB file here, or select a container directly from your storage archives to begin reading completely offline.</p><button id="choose">Choose EPUB File</button><p class="small">All data execution routines run securely inside isolated sandboxed browser memory.</p></div></div>
-<input id="file" type="file" accept=".epub,application/epub+zip">
 <script>
 let chapters = [], idx = 0, currentColumnPage = 0, totalColumnPages = 1, resizeTimeout = null;
 const config = {
@@ -98,7 +17,7 @@ const config = {
     document.querySelectorAll(".theme-btn").forEach(b => b.classList.toggle("active", b.dataset.val === this.theme));
     document.querySelectorAll("#space-low, #space-med, #space-high").forEach(b => b.classList.toggle("active", b.dataset.val === this.space));
     document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b => b.classList.toggle("active", b.dataset.val === this.width));
-    setTimeout(() => { updatePaginationMeasurements(); applyColumnShift(); }, 120);
+    setTimeout(() => { updatePaginationMeasurements(); applyColumnShift(); }, 100);
   }
 };
 document.getElementById("choose").onclick = () => document.getElementById("file").click();
@@ -123,8 +42,8 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") document.body.classList.remove("app-hidden");
 });
 let touchStartX = 0, touchEndX = 0;
-document.getElementById("viewport").addEventListener("touchstart", e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
-document.getElementById("viewport").addEventListener("touchend", e => { touchEndX = e.changedTouches[0].screenX; let sweepDistance = touchEndX - touchStartX; if (Math.abs(sweepDistance) > 60) { if (sweepDistance > 0) navigatePage(-1); else navigatePage(1); document.body.classList.add("app-hidden"); } }, {passive: true});
+document.getElementById("viewport").addEventListener("touchstart", e => { touchStartX = e.changedTouches.screenX; }, {passive: true});
+document.getElementById("viewport").addEventListener("touchend", e => { touchEndX = e.changedTouches.screenX; let sweepDistance = touchEndX - touchStartX; if (Math.abs(sweepDistance) > 60) { if (sweepDistance > 0) navigatePage(-1); else navigatePage(1); document.body.classList.add("app-hidden"); } }, {passive: true});
 
 async function decompressDeflate(bytes) {
   const s = new ReadableStream({ start(c) { c.enqueue(bytes); c.close(); } }).pipeThrough(new DecompressionStream("deflate-raw"));
@@ -148,8 +67,8 @@ async function openBook(fileObj) {
     let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
     if (!ck) throw Error("Container missing.");
     let containerDoc = new DOMParser().parseFromString(new TextDecoder().decode(entries[ck]), "text/xml");
-    let rootfile = containerDoc.getElementsByTagName("rootfile")[0]; if (!rootfile) throw Error("OPF shortcut unlinked.");
-    let opfPath = rootfile.getAttribute("full-path"); if (!opfPath) throw Error("OPF path broken.");
+    let rootfiles = containerDoc.getElementsByTagName("rootfile"); if (!rootfiles || !rootfiles.length) throw Error("OPF shortcut unlinked.");
+    let opfPath = rootfiles[0].getAttribute("full-path"); if (!opfPath) throw Error("OPF path broken.");
     let opfKey = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/') === opfPath.toLowerCase());
     if (!opfKey) throw Error("OPF data dropped.");
     
@@ -193,13 +112,14 @@ async function openBook(fileObj) {
     if (!chapters.length) throw Error("No readable layers.");
     buildToc();
     let saved = localStorage.getItem("ep-pos-" + fileObj.name);
-    if (saved) { let p = saved.split(":"); idx = parseInt(p[0]) || 0; currentColumnPage = parseInt(p[1]) || 0; } else { idx = 0; currentColumnPage = 0; }
+    if (saved) { let p = saved.split(":"); idx = parseInt(p) || 0; currentColumnPage = parseInt(p) || 0; } else { idx = 0; currentColumnPage = 0; }
     show(idx, true);
     document.getElementById("drop").classList.add("hidden");
     document.body.classList.add("app-hidden");
   } catch (e) { document.getElementById("title").textContent = "Local EPUB Reader"; alert("Error: " + e.message); }
 }
 function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); }
+
 function buildToc() {
   const t = document.getElementById("toc"); t.innerHTML = "";
   chapters.forEach((c, i) => {
