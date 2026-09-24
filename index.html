@@ -44,7 +44,7 @@ select { border: 1px solid var(--border); padding: 6px 12px; background: var(--b
 #file { display: none; }
 @media (max-width: 900px) { #reader-frame { width: 100%; max-width: 100%; padding: 32px 20px; } #reader { column-gap: 40px; column-width: calc(100vw - 40px); } .click-zone { width: 20%; } }
 </style>
-</head>  
+</head>
 <body>
 <div id="app">
   <div id="top-bar" class="bar">
@@ -72,10 +72,10 @@ select { border: 1px solid var(--border); padding: 6px 12px; background: var(--b
   </div>
   <div id="bottom-bar" class="bar"><div id="progress-text">Page 0 of 0</div></div>
 </div>
-<div id="drawer"><h2>Contents</h2><div id="toc" class="small">Open an EPUB to generate access map indicators.</div></div>
+<div id="drawer"><h2>Contents</h2><div id="toc"></div></div>
 <div id="drawer-backdrop"></div>
 <div id="drop"><div class="card"><h1>📖 Local EPUB Reader</h1><p>Drop an EPUB here, or select an asset container from storage archives.</p><button id="choose">Choose EPUB</button><p class="small">Data execution procedures occur offline inside computational memory spaces.</p></div></div>
-<input id="file" type="file" accept=".epub,application/epub+zip">  
+<input id="file" type="file" accept=".epub,application/epub+zip">
 <script>
 let chapters = [], idx = 0, currentColumnPage = 0, totalColumnPages = 1, resizeTimeout = null;
 const config = {
@@ -114,7 +114,7 @@ document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b
 document.getElementById("fullscreen-btn").onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else document.exitFullscreen(); };
 document.getElementById("zone-left").onclick = (e) => { e.stopPropagation(); navigatePage(-1); };
 document.getElementById("zone-right").onclick = (e) => { e.stopPropagation(); navigatePage(1); };
-document.getElementById("viewport").onclick = () => { document.body.classList.toggle("app-hidden"); };
+document.getElementById("viewport").onclick = () => { document.body.classList.toggle("app-hidden"); };  
 document.addEventListener("keydown", e => {
   if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); navigatePage(1); document.body.classList.add("app-hidden"); }
   if (e.key === "ArrowLeft") { e.preventDefault(); navigatePage(-1); document.body.classList.add("app-hidden"); }
@@ -142,26 +142,28 @@ async function openBook(fileObj) {
         else if (comp === 8) { try { entries[name] = await decompressDeflate(data); } catch (err) {} }
         offset = start + cSize;
       } else offset++;
-    }
-  let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
+    }  
+ let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
     if (!ck) throw Error("Container missing.");
-    const opfM = new TextDecoder().decode(entries[ck]).match(/full-path\s*=\s*["']([^"']+)["']/i);
-    if (!opfM) throw Error("OPF path missing.");
-    let opfKey = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/') === opfM[1].toLowerCase());
+    const opfMatch = new TextDecoder().decode(entries[ck]).match(/full-path\s*=\s*["']([^"']+)["']/i);
+    if (!opfMatch) throw Error("OPF path missing.");
+    const opfPath = opfMatch[1];
+    let opfKey = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/') === opfPath.toLowerCase());
     if (!opfKey) throw Error("OPF content missing.");
-    const opfText = new TextDecoder().decode(entries[opfKey]), base = opfM[1].includes("/") ? opfM[1].slice(0, opfM[1].lastIndexOf("/") + 1) : "";
+    const opfText = new TextDecoder().decode(entries[opfKey]), base = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/") + 1) : "";
     const manifest = {}; let itemReg = /<item\b[^>]*>/gi, im;
     while ((im = itemReg.exec(opfText)) !== null) {
-      let id = im[0].match(/id\s*=\s*["']([^"']+)["']/i), href = im[0].match(/href\s*=\s*["']([^"']+)["']/i), media = im[0].match(/media-type\s*=\s*["']([^"']+)["']/i);
-      if (id && href) manifest[id[1]] = { href: decodeURIComponent(href[1]), media: media ? media[1] : "" };
+      let idM = im[0].match(/id\s*=\s*["']([^"']+)["']/i), hrefM = im[0].match(/href\s*=\s*["']([^"']+)["']/i), mediaM = im[0].match(/media-type\s*=\s*["']([^"']+)["']/i);
+      if (idM && hrefM) manifest[idM[1]] = { href: decodeURIComponent(hrefM[1]), media: mediaM ? mediaM[1] : "" };
     }
     chapters = []; let refReg = /<itemref\b[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>/gi, rm;
     while ((rm = refReg.exec(opfText)) !== null) {
-      let item = manifest[rm[1]]; if (!item || !/xhtml|html|xml/i.test(item.media)) continue;
+      let idrefM = rm[0].match(/idref\s*=\s*["']([^"']+)["']/i); if (!idrefM) continue;
+      let item = manifest[idrefM[1]]; if (!item || !/xhtml|html|xml/i.test(item.media)) continue;
       let path = norm(base + item.href), mk = Object.keys(entries).find(k => norm(k).toLowerCase() === path.toLowerCase());
       if (mk) {
-        let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");    
- docEl.querySelectorAll("img,image").forEach(img => {
+        let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");  
+  docEl.querySelectorAll("img,image").forEach(img => {
           let src = img.getAttribute("src") || img.getAttribute("xlink:href") || "";
           if (src && !src.startsWith("data:")) {
             let ik = Object.keys(entries).find(k => norm(k).toLowerCase() === norm(base + src).toLowerCase());
@@ -173,7 +175,9 @@ async function openBook(fileObj) {
           }
         });
         let tM = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i), hM = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-        chapters.push({ html: docEl.body.innerHTML, name: tM ? tM[1].replace(/<[^>]*>/g, '').trim() : hM ? hM[1].replace(/<[^>]*>/g, '').trim() : "Chapter " + (chapters.length + 1), bName: fileObj.name });
+        let cName = tM ? tM[1].replace(/<[^>]*>/g, '').trim() : hM ? hM[1].replace(/<[^>]*>/g, '').trim() : "Chapter " + (chapters.length + 1);
+        if (!cName) cName = "Chapter " + (chapters.length + 1);
+        chapters.push({ html: docEl.body.innerHTML, name: cName, bName: fileObj.name });
       }
     }
     if (!chapters.length) throw Error("No readable layers.");
