@@ -44,7 +44,7 @@ select { border: 1px solid var(--border); padding: 6px 12px; background: var(--b
 #file { display: none; }
 @media (max-width: 900px) { #reader-frame { width: 100%; max-width: 100%; padding: 32px 20px; } #reader { column-gap: 40px; column-width: calc(100vw - 40px); } .click-zone { width: 20%; } }
 </style>
-</head>
+</head>  
 <body>
 <div id="app">
   <div id="top-bar" class="bar">
@@ -74,8 +74,8 @@ select { border: 1px solid var(--border); padding: 6px 12px; background: var(--b
 </div>
 <div id="drawer"><h2>Contents</h2><div id="toc" class="small">Open an EPUB to generate access map indicators.</div></div>
 <div id="drawer-backdrop"></div>
-### Block 2 of 5: Core Configurations & Event Hooks
-```html
+<div id="drop"><div class="card"><h1>📖 Local EPUB Reader</h1><p>Drop an EPUB here, or select an asset container from storage archives.</p><button id="choose">Choose EPUB</button><p class="small">Data execution procedures occur offline inside computational memory spaces.</p></div></div>
+<input id="file" type="file" accept=".epub,application/epub+zip">  
 <script>
 let chapters = [], idx = 0, currentColumnPage = 0, totalColumnPages = 1, resizeTimeout = null;
 const config = {
@@ -120,10 +120,15 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowLeft") { e.preventDefault(); navigatePage(-1); document.body.classList.add("app-hidden"); }
   if (e.key === "Escape") document.body.classList.remove("app-hidden");
 });
+let touchStartX = 0, touchEndX = 0;
+document.getElementById("viewport").addEventListener("touchstart", e => { touchStartX = e.changedTouches.screenX; }, {passive: true});
+document.getElementById("viewport").addEventListener("touchend", e => { touchEndX = e.changedTouches.screenX; let sweepDistance = touchEndX - touchStartX; if (Math.abs(sweepDistance) > 60) { if (sweepDistance > 0) navigatePage(-1); else navigatePage(1); document.body.classList.add("app-hidden"); } }, {passive: true});
+
 async function decompressDeflate(bytes) {
   const s = new ReadableStream({ start(c) { c.enqueue(bytes); c.close(); } }).pipeThrough(new DecompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(s).arrayBuffer());
 }
+
 async function openBook(fileObj) {
   try {
     document.getElementById("title").textContent = "Opening " + fileObj.name + "...";
@@ -138,7 +143,7 @@ async function openBook(fileObj) {
         offset = start + cSize;
       } else offset++;
     }
-    let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
+  let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
     if (!ck) throw Error("Container missing.");
     const opfM = new TextDecoder().decode(entries[ck]).match(/full-path\s*=\s*["']([^"']+)["']/i);
     if (!opfM) throw Error("OPF path missing.");
@@ -155,8 +160,8 @@ async function openBook(fileObj) {
       let item = manifest[rm[1]]; if (!item || !/xhtml|html|xml/i.test(item.media)) continue;
       let path = norm(base + item.href), mk = Object.keys(entries).find(k => norm(k).toLowerCase() === path.toLowerCase());
       if (mk) {
-        let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");
-        docEl.querySelectorAll("img,image").forEach(img => {
+        let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");    
+ docEl.querySelectorAll("img,image").forEach(img => {
           let src = img.getAttribute("src") || img.getAttribute("xlink:href") || "";
           if (src && !src.startsWith("data:")) {
             let ik = Object.keys(entries).find(k => norm(k).toLowerCase() === norm(base + src).toLowerCase());
@@ -180,7 +185,7 @@ async function openBook(fileObj) {
     document.body.classList.add("app-hidden");
   } catch (e) { document.getElementById("title").textContent = "Local EPUB Reader"; alert("Error: " + e.message); }
 }
-function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); } 
+function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); }      
 function buildToc() {
   const t = document.getElementById("toc"); t.innerHTML = "";
   chapters.forEach((c, i) => {
@@ -232,8 +237,7 @@ function navigatePage(d) {
   else if (t >= totalColumnPages && idx < chapters.length - 1) { idx++; currentColumnPage = 0; show(idx, false); }
 }
 window.onresize = () => { clearTimeout(resizeTimeout); resizeTimeout = setTimeout(() => { updatePaginationMeasurements(); applyColumnShift(); }, 150); };
-config.apply();  
+config.apply();
 </script>
 </body>
-</html>
-  
+</html>  
