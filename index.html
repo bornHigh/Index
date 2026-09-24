@@ -145,7 +145,7 @@ async function openBook(fileObj) {
         offset = start + cSize;
       } else offset++;
     }
-      let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
+    let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
     if (!ck) throw Error("Container missing.");
     const opfMatch = new TextDecoder().decode(entries[ck]).match(/full-path\s*=\s*["']([^"']+)["']/i);
     if (!opfMatch) throw Error("OPF path missing.");
@@ -165,7 +165,7 @@ async function openBook(fileObj) {
       let path = norm(base + item.href), mk = Object.keys(entries).find(k => norm(k).toLowerCase() === path.toLowerCase());
       if (mk) {
         let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");
-         docEl.querySelectorAll("img,image").forEach(img => {
+        docEl.querySelectorAll("img,image").forEach(img => {
           let src = img.getAttribute("src") || img.getAttribute("xlink:href") || "";
           if (src && !src.startsWith("data:")) {
             let ik = Object.keys(entries).find(k => norm(k).toLowerCase() === norm(base + src).toLowerCase());
