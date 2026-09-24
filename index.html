@@ -16,25 +16,28 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body, html { height: 100%; overflow: hidden; background: var(--bg); color: var(--fg); font-family: var(--font-sans); transition: background 0.2s, color 0.2s; }
+body[data-theme="cream"] { --bg: var(--bg-cream); --fg: var(--fg-cream); --panel: var(--panel-cream); --border: var(--border-cream); --accent: var(--accent-cream); }
+body[data-theme="white"] { --bg: var(--bg-white); --fg: var(--fg-white); --panel: var(--panel-white); --border: var(--border-white); --accent: var(--accent-white); }
+body[data-theme="sepia"] { --bg: var(--bg-sepia); --fg: var(--fg-sepia); --panel: var(--panel-sepia); --border: var(--border-sepia); --accent: var(--accent-sepia); }
+body[data-theme="dark"] { --bg: var(--bg-dark); --fg: var(--fg-dark); --panel: var(--panel-dark); --border: var(--border-dark); --accent: var(--accent-dark); }
 #app { display: flex; flex-direction: column; height: 100%; position: relative; }
 .bar { height: 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--border); position: absolute; left: 0; right: 0; z-index: 100; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
 #top-bar { top: 0; } #bottom-bar { bottom: 0; top: auto; border-bottom: none; border-top: 1px solid var(--border); height: 48px; justify-content: center; }
 .app-hidden .bar#top-bar { transform: translateY(-100%); } .app-hidden .bar#bottom-bar { transform: translateY(100%); }
 .nav-group { display: flex; align-items: center; gap: 8px; }
 #title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
-button, select { font: inherit; background: transparent; border: 0; color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; outline: none; transition: background 0.15s; }
-button { width: 40px; height: 40px; } button:hover { background: rgba(0,0,0,0.06); } body[data-theme="dark"] button:hover { background: rgba(255,255,255,0.08); } button.active { color: var(--accent); background: rgba(0,0,0,0.04); }
-select { border: 1px solid var(--border); padding: 6px 12px; background: var(--bg); border-radius: 6px; }
+button { font: inherit; background: transparent; border: 0; color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; outline: none; transition: background 0.15s; width: 40px; height: 40px; }
+button:hover { background: rgba(0,0,0,0.06); } body[data-theme="dark"] button:hover { background: rgba(255,255,255,0.08); } button.active { color: var(--accent); background: rgba(0,0,0,0.04); }
 .dropdown { position: relative; } .dropdown-content { display: none; position: absolute; right: 0; top: 48px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 110; flex-direction: column; gap: 14px; }
 .dropdown.open .dropdown-content { display: flex; } .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; } .control-row span { font-size: 13px; font-weight: 500; opacity: 0.8; }
 .segmented-control { display: flex; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 8px; width: 140px; } body[data-theme="dark"] .segmented-control { background: rgba(255,255,255,0.05); } .segmented-control button { flex: 1; height: 32px; font-size: 13px; border-radius: 6px; } .segmented-control button.active { background: var(--bg); color: var(--fg); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
 .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 140px; } .theme-btn { width: 100%; height: 32px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; font-weight: 600; }
 .theme-btn[data-val="cream"] { background: var(--bg-cream); color: var(--fg-cream); } .theme-btn[data-val="white"] { background: var(--bg-white); color: var(--fg-white); } .theme-btn[data-val="dark"] { background: var(--bg-dark); color: var(--fg-dark); } .theme-btn[data-val="sepia"] { background: var(--bg-sepia); color: var(--fg-sepia); } .theme-btn.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-#viewport { flex: 1; position: relative; margin-top: 56px; margin-bottom: 48px; display: flex; justify-content: center; align-items: center; overflow: hidden; } .app-hidden #viewport { margin-top: 0; margin-bottom: 0; }
-#reader-frame { width: var(--reader-width); height: 100%; max-width: 90vw; padding: 40px 0; overflow: hidden; position: relative; }
+#viewport { flex: 1; position: relative; margin-top: 56px; margin-bottom: 48px; display: flex; justify-content: center; align-items: center; overflow: hidden; width: 100%; height: 100%; } .app-hidden #viewport { margin-top: 0; margin-bottom: 0; }
+#reader-frame { width: var(--reader-width); height: 100%; max-width: 90vw; padding: 40px 0; overflow: hidden; position: relative; z-index: 10; }
 #reader { height: 100%; column-fill: auto; column-gap: 60px; column-width: calc(var(--reader-width)); font-family: var(--font-serif); font-size: var(--reader-font-size); line-height: var(--reader-line-height); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
 #reader p { text-align: justify; margin-bottom: 1.25em; text-indent: 1.5em; } #reader p:first-of-type, #reader h1 + p, #reader h2 + p, #reader h3 + p { text-indent: 0; } #reader h1, #reader h2, #reader h3 { font-family: var(--font-sans); margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2; break-after: avoid; } #reader img { max-width: 100%; height: auto; max-height: 70vh; object-fit: contain; display: block; margin: 1em auto; break-inside: avoid; }
-.click-zone { position: absolute; top: 0; bottom: 0; width: 15%; z-index: 50; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; } .click-zone:hover { opacity: 0.4; } #zone-left { left: 0; } #zone-right { right: 0; } .zone-arrow { font-size: 32px; font-weight: 300; pointer-events: none; }
+.click-zone { position: absolute; top: 56px; bottom: 48px; width: 20%; z-index: 5; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; } .app-hidden .click-zone { top: 0; bottom: 0; width: 25%; z-index: 15; } .click-zone:hover { opacity: 0.2; background: rgba(0,0,0,0.1); } body[data-theme="dark"] .click-zone:hover { background: rgba(255,255,255,0.1); } #zone-left { left: 0; } #zone-right { right: 0; } .zone-arrow { font-size: 48px; font-weight: 300; pointer-events: none; }
 #drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 320px; background: var(--panel); border-right: 1px solid var(--border); box-shadow: 10px 0 30px rgba(0,0,0,0.05); z-index: 200; padding: 24px 16px; overflow-y: auto; transform: translateX(-100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 16px; } #drawer.open { transform: translateX(0); } #drawer-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 199; } #drawer.open + #drawer-backdrop { display: block; }
 #toc { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 2px; } .chapter { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .chapter:hover { background: rgba(0,0,0,0.04); } body[data-theme="dark"] .chapter:hover { background: rgba(255,255,255,0.05); } .chapter.active { background: var(--accent); color: #fff; }
 #progress-text { font-size: 12px; font-weight: 600; opacity: 0.7; letter-spacing: 0.5px; }
@@ -42,7 +45,7 @@ select { border: 1px solid var(--border); padding: 6px 12px; background: var(--b
 .card { text-align: center; border: 2px dashed var(--border); border-radius: 16px; padding: 48px 32px; max-width: 500px; width: 100%; background: var(--panel); } .card h1 { font-size: 24px; margin-bottom: 8px; font-weight: 700; } .card p { font-size: 14px; opacity: 0.8; margin-bottom: 24px; }
 #choose { background: var(--accent); color: #fff; padding: 10px 20px; font-weight: 600; border-radius: 8px; font-size: 14px; } #choose:hover { background: var(--accent); opacity: 0.9; } .small { font-size: 12px !important; opacity: 0.5 !important; margin-top: 16px; margin-bottom: 0 !important; }
 #file { display: none; }
-@media (max-width: 900px) { #reader-frame { width: 100%; max-width: 100%; padding: 32px 20px; } #reader { column-gap: 40px; column-width: calc(100vw - 40px); } .click-zone { width: 20%; } }
+@media (max-width: 900px) { #reader-frame { width: 100%; max-width: 100%; padding: 32px 20px; } #reader { column-gap: 40px; column-width: calc(100vw - 40px); } .click-zone { width: 25%; } }
 </style>
 </head>
 <body>
@@ -95,7 +98,6 @@ const config = {
     document.querySelectorAll(".theme-btn").forEach(b => b.classList.toggle("active", b.dataset.val === this.theme));
     document.querySelectorAll("#space-low, #space-med, #space-high").forEach(b => b.classList.toggle("active", b.dataset.val === this.space));
     document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b => b.classList.toggle("active", b.dataset.val === this.width));
-    document.body.className = "theme-" + this.theme;
     updatePaginationMeasurements();
   }
 };
@@ -106,8 +108,8 @@ document.getElementById("drawer-backdrop").onclick = () => document.getElementBy
 document.getElementById("settings-btn").onclick = (e) => { e.stopPropagation(); document.getElementById("settings-dropdown").classList.toggle("open"); };
 document.onclick = () => { document.getElementById("settings-dropdown").classList.remove("open"); };
 document.getElementById("settings-dropdown").onclick = (e) => e.stopPropagation();
-document.getElementById("font-increase").onclick = () => { config.size = Math.min(36, config.size + 1); };
-document.getElementById("font-decrease").onclick = () => { config.size = Math.max(14, config.size - 1); };
+document.getElementById("font-increase").onclick = () => { config.size = Math.min(36, config.size + 2); };
+document.getElementById("font-decrease").onclick = () => { config.size = Math.max(14, config.size - 2); };
 document.querySelectorAll(".theme-btn").forEach(b => b.onclick = () => { config.theme = b.dataset.val; });
 document.querySelectorAll("#space-low, #space-med, #space-high").forEach(b => b.onclick = () => { config.space = b.dataset.val; });
 document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b => b.onclick = () => { config.width = b.dataset.val; });
@@ -142,7 +144,7 @@ async function openBook(fileObj) {
         else if (comp === 8) { try { entries[name] = await decompressDeflate(data); } catch (err) {} }
         offset = start + cSize;
       } else offset++;
-    }  
+    }
  let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
     if (!ck) throw Error("Container missing.");
     const opfMatch = new TextDecoder().decode(entries[ck]).match(/full-path\s*=\s*["']([^"']+)["']/i);
@@ -162,8 +164,8 @@ async function openBook(fileObj) {
       let item = manifest[idrefM[1]]; if (!item || !/xhtml|html|xml/i.test(item.media)) continue;
       let path = norm(base + item.href), mk = Object.keys(entries).find(k => norm(k).toLowerCase() === path.toLowerCase());
       if (mk) {
-        let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");  
-  docEl.querySelectorAll("img,image").forEach(img => {
+        let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");
+ docEl.querySelectorAll("img,image").forEach(img => {
           let src = img.getAttribute("src") || img.getAttribute("xlink:href") || "";
           if (src && !src.startsWith("data:")) {
             let ik = Object.keys(entries).find(k => norm(k).toLowerCase() === norm(base + src).toLowerCase());
@@ -175,8 +177,11 @@ async function openBook(fileObj) {
           }
         });
         let tM = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i), hM = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-        let cName = tM ? tM[1].replace(/<[^>]*>/g, '').trim() : hM ? hM[1].replace(/<[^>]*>/g, '').trim() : "Chapter " + (chapters.length + 1);
-        if (!cName) cName = "Chapter " + (chapters.length + 1);
+        let cName = tM ? tM[1].replace(/<[^>]*>/g, '').trim() : hM ? hM[1].replace(/<[^>]*>/g, '').trim() : "";
+        if (!cName) {
+          let textSample = docEl.body.textContent.trim().substring(0, 30);
+          cName = textSample ? textSample + "..." : "Section " + (chapters.length + 1);
+        }
         chapters.push({ html: docEl.body.innerHTML, name: cName, bName: fileObj.name });
       }
     }
