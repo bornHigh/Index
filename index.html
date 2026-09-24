@@ -120,19 +120,14 @@ document.addEventListener("keydown", e => {
   if (e.key === "ArrowLeft") { e.preventDefault(); navigatePage(-1); document.body.classList.add("app-hidden"); }
   if (e.key === "Escape") document.body.classList.remove("app-hidden");
 });
-let touchStartX = 0, touchEndX = 0;
-document.getElementById("viewport").addEventListener("touchstart", e => { touchStartX = e.changedTouches.screenX; }, {passive: true});
-document.getElementById("viewport").addEventListener("touchend", e => { touchEndX = e.changedTouches.screenX; let sweepDistance = touchEndX - touchStartX; if (Math.abs(sweepDistance) > 60) { if (sweepDistance > 0) navigatePage(-1); else navigatePage(1); document.body.classList.add("app-hidden"); } }, {passive: true});
-
 async function decompressDeflate(bytes) {
   const s = new ReadableStream({ start(c) { c.enqueue(bytes); c.close(); } }).pipeThrough(new DecompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(s).arrayBuffer());
 }
-
-async function openBook(file) {
+async function openBook(fileObj) {
   try {
-    document.getElementById("title").textContent = "Opening " + file.name + "...";
-    const buf = await file.arrayBuffer(), view = new DataView(buf), u8 = new Uint8Array(buf);
+    document.getElementById("title").textContent = "Opening " + fileObj.name + "...";
+    const buf = await fileObj.arrayBuffer(), view = new DataView(buf), u8 = new Uint8Array(buf);
     let entries = {}, offset = 0;
     while (offset < buf.byteLength - 30) {
       if (view.getUint32(offset, true) === 0x04034b50) {
@@ -173,19 +168,19 @@ async function openBook(file) {
           }
         });
         let tM = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i), hM = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-        chapters.push({ html: docEl.body.innerHTML, name: tM ? tM[1].replace(/<[^>]*>/g, '').trim() : hM ? hM[1].replace(/<[^>]*>/g, '').trim() : "Chapter " + (chapters.length + 1), bName: file.name });
+        chapters.push({ html: docEl.body.innerHTML, name: tM ? tM[1].replace(/<[^>]*>/g, '').trim() : hM ? hM[1].replace(/<[^>]*>/g, '').trim() : "Chapter " + (chapters.length + 1), bName: fileObj.name });
       }
     }
     if (!chapters.length) throw Error("No readable layers.");
     buildToc();
-    let saved = localStorage.getItem("ep-pos-" + file.name);
+    let saved = localStorage.getItem("ep-pos-" + fileObj.name);
     if (saved) { let p = saved.split(":"); idx = parseInt(p[0]) || 0; currentColumnPage = parseInt(p[1]) || 0; } else { idx = 0; currentColumnPage = 0; }
     show(idx, true);
     document.getElementById("drop").classList.add("hidden");
     document.body.classList.add("app-hidden");
   } catch (e) { document.getElementById("title").textContent = "Local EPUB Reader"; alert("Error: " + e.message); }
 }
-function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); }
+function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); } 
 function buildToc() {
   const t = document.getElementById("toc"); t.innerHTML = "";
   chapters.forEach((c, i) => {
@@ -237,7 +232,7 @@ function navigatePage(d) {
   else if (t >= totalColumnPages && idx < chapters.length - 1) { idx++; currentColumnPage = 0; show(idx, false); }
 }
 window.onresize = () => { clearTimeout(resizeTimeout); resizeTimeout = setTimeout(() => { updatePaginationMeasurements(); applyColumnShift(); }, 150); };
-config.apply();
+config.apply();  
 </script>
 </body>
 </html>
