@@ -28,7 +28,7 @@ body[data-theme="dark"] { --bg: var(--bg-dark); --fg: var(--fg-dark); --panel: v
 #title { font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
 button { font: inherit; background: transparent; border: 0; color: inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; outline: none; transition: background 0.15s; width: 40px; height: 40px; }
 button:hover { background: rgba(0,0,0,0.06); } body[data-theme="dark"] button:hover { background: rgba(255,255,255,0.08); } button.active { color: var(--accent); background: rgba(0,0,0,0.04); }
-  .dropdown { position: relative; } .dropdown-content { display: none; position: absolute; right: 0; top: 48px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 110; flex-direction: column; gap: 14px; }
+.dropdown { position: relative; } .dropdown-content { display: none; position: absolute; right: 0; top: 48px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; width: 280px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 110; flex-direction: column; gap: 14px; }
 .dropdown.open .dropdown-content { display: flex; } .control-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; } .control-row span { font-size: 13px; font-weight: 500; opacity: 0.8; }
 .segmented-control { display: flex; background: rgba(0,0,0,0.05); padding: 2px; border-radius: 8px; width: 140px; } body[data-theme="dark"] .segmented-control { background: rgba(255,255,255,0.05); } .segmented-control button { flex: 1; height: 32px; font-size: 13px; border-radius: 6px; } .segmented-control button.active { background: var(--bg); color: var(--fg); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
 .theme-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 140px; } .theme-btn { width: 100%; height: 32px; border-radius: 6px; border: 1px solid var(--border); font-size: 11px; font-weight: 600; }
@@ -78,7 +78,7 @@ button:hover { background: rgba(0,0,0,0.06); } body[data-theme="dark"] button:ho
 <div id="drawer"><h2>Contents</h2><div id="toc"></div></div>
 <div id="drawer-backdrop"></div>
 <div id="drop"><div class="card"><h1>📖 Local EPUB Reader</h1><p>Drop an EPUB file here, or select a container directly from your storage archives to begin reading completely offline.</p><button id="choose">Choose EPUB File</button><p class="small">All data execution routines run securely inside isolated sandboxed browser memory.</p></div></div>
-<input id="file" type="file" accept=".epub,application/epub+zip">
+<input id="file" type="file" accept=".epub,application/epub+zip">  
 <script>
 let chapters = [], idx = 0, currentColumnPage = 0, totalColumnPages = 1, resizeTimeout = null;
 const config = {
@@ -116,8 +116,8 @@ document.querySelectorAll("#width-narrow, #width-normal, #width-wide").forEach(b
 document.getElementById("fullscreen-btn").onclick = () => { if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(()=>{}); else document.exitFullscreen(); };
 document.getElementById("zone-left").onclick = (e) => { e.stopPropagation(); navigatePage(-1); };
 document.getElementById("zone-right").onclick = (e) => { e.stopPropagation(); navigatePage(1); };
-document.getElementById("viewport").onclick = () => { document.body.classList.toggle("app-hidden"); };
-  document.addEventListener("keydown", e => {
+document.getElementById("viewport").onclick = () => { document.body.classList.toggle("app-hidden"); };  
+document.addEventListener("keydown", e => {
   if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); navigatePage(1); document.body.classList.add("app-hidden"); }
   if (e.key === "ArrowLeft") { e.preventDefault(); navigatePage(-1); document.body.classList.add("app-hidden"); }
   if (e.key === "Escape") document.body.classList.remove("app-hidden");
@@ -144,11 +144,11 @@ async function openBook(fileObj) {
         else if (comp === 8) { try { entries[name] = await decompressDeflate(data); } catch (err) {} }
         offset = start + cSize;
       } else offset++;
-    }
-    let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
+    }  
+  let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
     if (!ck) throw Error("Container missing.");
     const opfMatch = new TextDecoder().decode(entries[ck]).match(/full-path\s*=\s*["']([^"']+)["']/i);
-    if (!opfMatch) throw Error("OPF path missing.");
+    if (!opfMatch || !opfMatch[1]) throw Error("OPF path missing.");
     const opfPath = opfMatch[1];
     let opfKey = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/') === opfPath.toLowerCase());
     if (!opfKey) throw Error("OPF content missing.");
@@ -160,12 +160,12 @@ async function openBook(fileObj) {
     }
     chapters = []; let refReg = /<itemref\b[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>/gi, rm;
     while ((rm = refReg.exec(opfText)) !== null) {
-      let idrefM = rm[0].match(/idref\s*=\s*["']([^"']+)["']/i); if (!idrefM) continue;
+      let idrefM = rm[0].match(/idref\s*=\s*["']([^"']+)["']/i); if (!idrefM || !idrefM[1]) continue;
       let item = manifest[idrefM[1]]; if (!item || !/xhtml|html|xml/i.test(item.media)) continue;
       let path = norm(base + item.href), mk = Object.keys(entries).find(k => norm(k).toLowerCase() === path.toLowerCase());
       if (mk) {
-        let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");
-        docEl.querySelectorAll("img,image").forEach(img => {
+        let html = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(html, "text/html");    
+docEl.querySelectorAll("img,image").forEach(img => {
           let src = img.getAttribute("src") || img.getAttribute("xlink:href") || "";
           if (src && !src.startsWith("data:")) {
             let ik = Object.keys(entries).find(k => norm(k).toLowerCase() === norm(base + src).toLowerCase());
@@ -177,7 +177,7 @@ async function openBook(fileObj) {
           }
         });
         let tM = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i), hM = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-        let cName = tM ? tM[1].replace(/<[^>]*>/g, '').trim() : hM ? hM[1].replace(/<[^>]*>/g, '').trim() : "";
+        let cName = tM && tM[1] ? tM[1].replace(/<[^>]*>/g, '').trim() : hM && hM[1] ? hM[1].replace(/<[^>]*>/g, '').trim() : "";
         if (!cName) {
           let textSample = docEl.body.textContent.trim().substring(0, 30);
           cName = textSample ? textSample + "..." : "Section " + (chapters.length + 1);
@@ -194,8 +194,8 @@ async function openBook(fileObj) {
     document.body.classList.add("app-hidden");
   } catch (e) { document.getElementById("title").textContent = "Local EPUB Reader"; alert("Error: " + e.message); }
 }
-function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); }
-  function buildToc() {
+function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); } 
+function buildToc() {
   const t = document.getElementById("toc"); t.innerHTML = "";
   chapters.forEach((c, i) => {
     let b = document.createElement("button"); b.className = "chapter"; b.textContent = c.name;
@@ -249,4 +249,5 @@ window.onresize = () => { clearTimeout(resizeTimeout); resizeTimeout = setTimeou
 config.apply();
 </script>
 </body>
-</html>
+</html>  
+  
