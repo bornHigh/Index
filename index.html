@@ -33,7 +33,7 @@ select { border: 1px solid var(--border); padding: 6px 12px; background: var(--b
 #viewport { flex: 1; position: relative; margin-top: 56px; margin-bottom: 48px; display: flex; justify-content: center; align-items: center; overflow: hidden; } .app-hidden #viewport { margin-top: 0; margin-bottom: 0; }
 #reader-frame { width: var(--reader-width); height: 100%; max-width: 90vw; padding: 40px 0; overflow: hidden; position: relative; }
 #reader { height: 100%; column-fill: auto; column-gap: 60px; column-width: calc(var(--reader-width)); font-family: var(--font-serif); font-size: var(--reader-font-size); line-height: var(--reader-line-height); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
-#reader p { text-align: justify; margin-bottom: 1.25em; text-indent: 1.5em; } #reader p:first-of-type, #reader h1 + p, #reader h2 + p, #reader h3 + p { text-indent: 0; } #reader h1, #reader h2, #reader h3 { font-family: var(--font-sans); margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2; break-after: avoid; column-break-after: avoid; } #reader img { max-width: 100%; height: auto; max-height: 70vh; object-fit: contain; display: block; margin: 1em auto; break-inside: avoid; column-break-inside: avoid; }
+#reader p { text-align: justify; margin-bottom: 1.25em; text-indent: 1.5em; } #reader p:first-of-type, #reader h1 + p, #reader h2 + p, #reader h3 + p { text-indent: 0; } #reader h1, #reader h2, #reader h3 { font-family: var(--font-sans); margin-top: 1.5em; margin-bottom: 0.5em; line-height: 1.2; break-after: avoid; } #reader img { max-width: 100%; height: auto; max-height: 70vh; object-fit: contain; display: block; margin: 1em auto; break-inside: avoid; }
 .click-zone { position: absolute; top: 0; bottom: 0; width: 15%; z-index: 50; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; } .click-zone:hover { opacity: 0.4; } #zone-left { left: 0; } #zone-right { right: 0; } .zone-arrow { font-size: 32px; font-weight: 300; pointer-events: none; }
 #drawer { position: fixed; top: 0; left: 0; bottom: 0; width: 320px; background: var(--panel); border-right: 1px solid var(--border); box-shadow: 10px 0 30px rgba(0,0,0,0.05); z-index: 200; padding: 24px 16px; overflow-y: auto; transform: translateX(-100%); transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; gap: 16px; } #drawer.open { transform: translateX(0); } #drawer-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.2); z-index: 199; } #drawer.open + #drawer-backdrop { display: block; }
 #toc { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 2px; } .chapter { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 6px; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .chapter:hover { background: rgba(0,0,0,0.04); } body[data-theme="dark"] .chapter:hover { background: rgba(255,255,255,0.05); } .chapter.active { background: var(--accent); color: #fff; }
@@ -57,10 +57,10 @@ select { border: 1px solid var(--border); padding: 6px 12px; background: var(--b
       <div class="dropdown" id="settings-dropdown">
         <button id="settings-btn" title="Reading Settings">Aa</button>
         <div class="dropdown-content">
-          <div class="control-row"><span>Theme</span><div class="theme-grid"><button class="theme-btn active" data-val="cream">Cream</button><button class="theme-btn" data-val="white">White</button><button class="theme-btn" data-val="sepia">Sepia</button><button class="theme-btn" data-val="dark">Dark</button></div></div>
+          <div class="control-row"><span>Theme</span><div class="theme-grid"><button class="theme-btn" data-val="cream">Cream</button><button class="theme-btn" data-val="white">White</button><button class="theme-btn" data-val="sepia">Sepia</button><button class="theme-btn" data-val="dark">Dark</button></div></div>
           <div class="control-row"><span>Size</span><div class="segmented-control"><button id="font-decrease">A-</button><button id="font-increase">A+</button></div></div>
-          <div class="control-row"><span>Spacing</span><div class="segmented-control"><button id="space-low" data-val="1.4">Low</button><button id="space-med" data-val="1.6" class="active">Med</button><button id="space-high" data-val="1.9">High</button></div></div>
-          <div class="control-row"><span>Width</span><div class="segmented-control"><button id="width-narrow" data-val="640px">Thin</button><button id="width-normal" data-val="800px" class="active">Med</button><button id="width-wide" data-val="1000px">Wide</button></div></div>
+          <div class="control-row"><span>Spacing</span><div class="segmented-control"><button id="space-low" data-val="1.4">Low</button><button id="space-med" data-val="1.6">Med</button><button id="space-high" data-val="1.9">High</button></div></div>
+          <div class="control-row"><span>Width</span><div class="segmented-control"><button id="width-narrow" data-val="640px">Thin</button><button id="width-normal" data-val="800px">Med</button><button id="width-wide" data-val="1000px">Wide</button></div></div>
         </div>
       </div>
     </div>
@@ -74,10 +74,10 @@ select { border: 1px solid var(--border); padding: 6px 12px; background: var(--b
 </div>
 <div id="drawer"><h2>Contents</h2><div id="toc" class="small">Open an EPUB to generate access map indicators.</div></div>
 <div id="drawer-backdrop"></div>
-<div id="drop"><div class="card"><h1>📖 Local EPUB Reader</h1><p>Drop an EPUB here, or select an asset container from storage archives.</p><button id="choose">Choose EPUB</button><p class="small">Data execution procedures occur offline inside computational memory spaces.</p></div></div>
-<input id="file" type="file" accept=".epub,application/epub+zip">
+### Block 2 of 5: Core Configurations & Event Hooks
+```html
 <script>
-let chapters = [], idx = 0, currentColumnPage = 0, totalColumnPages = 0, resizeTimeout = null;
+let chapters = [], idx = 0, currentColumnPage = 0, totalColumnPages = 1, resizeTimeout = null;
 const config = {
   get size() { return parseInt(localStorage.getItem("epub-font-size") || "20"); },
   set size(v) { localStorage.setItem("epub-font-size", v); this.apply(); },
@@ -116,23 +116,21 @@ document.getElementById("zone-left").onclick = (e) => { e.stopPropagation(); nav
 document.getElementById("zone-right").onclick = (e) => { e.stopPropagation(); navigatePage(1); };
 document.getElementById("viewport").onclick = () => { document.body.classList.toggle("app-hidden"); };
 document.addEventListener("keydown", e => {
-  if (e.key === "ArrowRight" || e.key === " ") { navigatePage(1); document.body.classList.add("app-hidden"); }
-  if (e.key === "ArrowLeft") { navigatePage(-1); document.body.classList.add("app-hidden"); }
+  if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); navigatePage(1); document.body.classList.add("app-hidden"); }
+  if (e.key === "ArrowLeft") { e.preventDefault(); navigatePage(-1); document.body.classList.add("app-hidden"); }
   if (e.key === "Escape") document.body.classList.remove("app-hidden");
 });
 let touchStartX = 0, touchEndX = 0;
 document.getElementById("viewport").addEventListener("touchstart", e => { touchStartX = e.changedTouches.screenX; }, {passive: true});
 document.getElementById("viewport").addEventListener("touchend", e => { touchEndX = e.changedTouches.screenX; let sweepDistance = touchEndX - touchStartX; if (Math.abs(sweepDistance) > 60) { if (sweepDistance > 0) navigatePage(-1); else navigatePage(1); document.body.classList.add("app-hidden"); } }, {passive: true});
+
 async function decompressDeflate(bytes) {
-  const s = new ReadableStream({
-    start(c) { c.enqueue(bytes); c.close(); }
-  }).pipeThrough(new DecompressionStream("deflate-raw"));
+  const s = new ReadableStream({ start(c) { c.enqueue(bytes); c.close(); } }).pipeThrough(new DecompressionStream("deflate-raw"));
   return new Uint8Array(await new Response(s).arrayBuffer());
 }
 
-async function openBook(files) {
+async function openBook(file) {
   try {
-    const file = files[0];
     document.getElementById("title").textContent = "Opening " + file.name + "...";
     const buf = await file.arrayBuffer(), view = new DataView(buf), u8 = new Uint8Array(buf);
     let entries = {}, offset = 0;
@@ -187,10 +185,7 @@ async function openBook(files) {
     document.body.classList.add("app-hidden");
   } catch (e) { document.getElementById("title").textContent = "Local EPUB Reader"; alert("Error: " + e.message); }
 }
-
-function strip(s) { let d = document.createElement("div"); d.innerHTML = s; return d.textContent.trim(); }
 function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); }
-
 function buildToc() {
   const t = document.getElementById("toc"); t.innerHTML = "";
   chapters.forEach((c, i) => {
@@ -199,30 +194,35 @@ function buildToc() {
     t.appendChild(b);
   });
 }
-
 function show(i, useSaved = false) {
   if (i < 0 || i >= chapters.length) return; idx = i;
-  document.getElementById("reader").innerHTML = chapters[idx].html;
+  const reader = document.getElementById("reader"); reader.innerHTML = chapters[idx].html;
   document.getElementById("title").textContent = chapters[idx].name;
   document.querySelectorAll(".chapter").forEach((b, j) => b.classList.toggle("active", j === idx));
   if (!useSaved) currentColumnPage = 0;
-  setTimeout(() => {
-    updatePaginationMeasurements();
-    if (useSaved) {
-      if (currentColumnPage >= totalColumnPages) currentColumnPage = totalColumnPages - 1;
-      if (currentColumnPage < 0) currentColumnPage = 0;
-    }
-    applyColumnShift();
-  }, 60);
+  const imgs = reader.querySelectorAll("img");
+  if (imgs.length > 0) {
+    let loaded = 0;
+    imgs.forEach(img => {
+      if (img.complete) { loaded++; if (loaded === imgs.length) renderLifecycle(useSaved); }
+      else { img.onload = img.onerror = () => { loaded++; if (loaded === imgs.length) renderLifecycle(useSaved); }; }
+    });
+  } else { renderLifecycle(useSaved); }
 }
-
+function renderLifecycle(useSaved) {
+  updatePaginationMeasurements();
+  if (useSaved) {
+    if (currentColumnPage >= totalColumnPages) currentColumnPage = totalColumnPages - 1;
+    if (currentColumnPage < 0) currentColumnPage = 0;
+  }
+  applyColumnShift();
+}
 function updatePaginationMeasurements() {
   const frame = document.getElementById("reader-frame"), reader = document.getElementById("reader"); if (!frame || !reader) return;
   const s = window.getComputedStyle(reader), w = parseFloat(s.columnWidth) || frame.clientWidth, g = parseFloat(s.columnGap) || 0;
-  totalColumnPages = Math.max(1, Math.round(reader.scrollWidth / (w + g)));
+  totalColumnPages = Math.max(1, Math.ceil(reader.scrollWidth / (w + g)));
   document.getElementById("progress-text").textContent = `Section ${idx + 1} of ${chapters.length} • Page ${currentColumnPage + 1} of ${totalColumnPages}`;
 }
-
 function applyColumnShift() {
   const frame = document.getElementById("reader-frame"), reader = document.getElementById("reader"); if (!frame || !reader) return;
   const s = window.getComputedStyle(reader), w = parseFloat(s.columnWidth) || frame.clientWidth, g = parseFloat(s.columnGap) || 0;
@@ -230,16 +230,15 @@ function applyColumnShift() {
   document.getElementById("progress-text").textContent = `Section ${idx + 1} of ${chapters.length} • Page ${currentColumnPage + 1} of ${totalColumnPages}`;
   if (chapters[idx]) localStorage.setItem("ep-pos-" + chapters[idx].bName, `${idx}:${currentColumnPage}`);
 }
-
 function navigatePage(d) {
   let t = currentColumnPage + d;
   if (t >= 0 && t < totalColumnPages) { currentColumnPage = t; applyColumnShift(); }
   else if (t < 0 && idx > 0) { idx--; currentColumnPage = 9999; show(idx, true); }
   else if (t >= totalColumnPages && idx < chapters.length - 1) { idx++; currentColumnPage = 0; show(idx, false); }
 }
-
 window.onresize = () => { clearTimeout(resizeTimeout); resizeTimeout = setTimeout(() => { updatePaginationMeasurements(); applyColumnShift(); }, 150); };
 config.apply();
 </script>
 </body>
 </html>
+  
