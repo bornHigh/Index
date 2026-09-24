@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Local EPUB Reader</title>
+<title>Offline EPUB Reader</title>
 <style>
 :root {
   --bg-cream: #f7f3ea; --fg-cream: #292723; --panel-cream: #eee9df; --border-cream: #ddd6ca; --accent-cream: #6558c8;
@@ -161,6 +161,7 @@ async function openBook(fileObj) {
       let id = items[i].getAttribute("id"), href = items[i].getAttribute("href"), media = items[i].getAttribute("media-type");
       if (id && href) manifest[id] = { href: decodeURIComponent(href), media: media || "" };
     }
+    
     chapters = [];
     let itemrefs = opfDoc.getElementsByTagName("itemref");
     for (let i = 0; i < itemrefs.length; i++) {
@@ -192,14 +193,13 @@ async function openBook(fileObj) {
     if (!chapters.length) throw Error("No readable layers.");
     buildToc();
     let saved = localStorage.getItem("ep-pos-" + fileObj.name);
-    if (saved) { let p = saved.split(":"); idx = parseInt(p) || 0; currentColumnPage = parseInt(p) || 0; } else { idx = 0; currentColumnPage = 0; }
+    if (saved) { let p = saved.split(":"); idx = parseInt(p[0]) || 0; currentColumnPage = parseInt(p[1]) || 0; } else { idx = 0; currentColumnPage = 0; }
     show(idx, true);
     document.getElementById("drop").classList.add("hidden");
     document.body.classList.add("app-hidden");
   } catch (e) { document.getElementById("title").textContent = "Local EPUB Reader"; alert("Error: " + e.message); }
 }
 function norm(p) { let a = []; for (let x of p.replace(/\\/g, '/').split("/")) { if (!x || x == ".") continue; x === ".." ? a.pop() : a.push(x); } return a.join("/"); }
-
 function buildToc() {
   const t = document.getElementById("toc"); t.innerHTML = "";
   chapters.forEach((c, i) => {
