@@ -292,6 +292,14 @@ $("viewport").addEventListener("touchend", e => {
   const buffer = await response.arrayBuffer();
   return new Uint8Array(buffer);
 }
+async function decompressDeflate(compressedBytes) {
+  const stream = new ReadableStream({
+    start(controller) { controller.enqueue(compressedBytes); controller.close(); }
+  }).pipeThrough(new DecompressionStream("deflate-raw"));
+  const response = new Response(stream);
+  const buffer = await response.arrayBuffer();
+  return new Uint8Array(buffer);
+}
 
 async function openBook(file){
   try {
@@ -364,7 +372,7 @@ async function openBook(file){
       idx = parseInt(parts) || 0; currentColumnPage = parseInt(parts) || 0;
     } else { idx = 0; currentColumnPage = 0; }
     show(idx, true);
-    \$("drop").classList.add("hidden");
+    ["drop"].forEach(id => document.getElementById(id).classList.add("hidden"));
     document.body.classList.add("app-hidden");
   } catch(e) {
     \$("title").textContent = "Local EPUB Reader";
