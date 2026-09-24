@@ -149,7 +149,7 @@ body[data-theme="dark"] .chapter:hover { background: rgba(255,255,255,0.05); }
       <button id="menu" title="Table of Contents">☰</button>
       <div id="title">Local EPUB Reader</div>
     </div>
-     <div class="nav-group">
+ <div class="nav-group">
       <button id="fullscreen-btn" title="Toggle Fullscreen">⛶</button>
       <div class="dropdown" id="settings-dropdown">
         <button id="settings-btn" title="Reading Settings">Aa</button>
@@ -284,14 +284,6 @@ $("viewport").addEventListener("touchend", e => {
     document.body.classList.add("app-hidden");
   }
 }, {passive: true});
-  async function decompressDeflate(compressedBytes) {
-  const stream = new ReadableStream({
-    start(controller) { controller.enqueue(compressedBytes); controller.close(); }
-  }).pipeThrough(new DecompressionStream("deflate-raw"));
-  const response = new Response(stream);
-  const buffer = await response.arrayBuffer();
-  return new Uint8Array(buffer);
-}
 async function decompressDeflate(compressedBytes) {
   const stream = new ReadableStream({
     start(controller) { controller.enqueue(compressedBytes); controller.close(); }
@@ -301,7 +293,8 @@ async function decompressDeflate(compressedBytes) {
   return new Uint8Array(buffer);
 }
 
-async function openBook(file){
+async function openBook(fileList){
+  const file = fileList[0];
   try {
     \$("title").textContent = "Opening " + file.name + "…";
     const arrayBuffer = await file.arrayBuffer(), view = new DataView(arrayBuffer), u8 = new Uint8Array(arrayBuffer);
@@ -324,7 +317,7 @@ async function openBook(file){
     const containerText = new TextDecoder().decode(entries[containerKey]);
     const opfMatch = containerText.match(/full-path\s*=\s*["']([^"']+)["']/i);
     if(!opfMatch) throw Error("Missing content manifest roadmap path descriptor.");
-    const opfPath = opfMatch;
+    const opfPath = opfMatch[1];
     let actualOpfKey = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/') === opfPath.toLowerCase());
     if(!actualOpfKey || !entries[actualOpfKey]) throw Error("Structural descriptor index maps are unreadable.");
     const opfText = new TextDecoder().decode(entries[actualOpfKey]);
@@ -332,14 +325,14 @@ async function openBook(file){
     const manifest = {};
     let itemReg = /<item\b[^>]*>/gi, im;
     while ((im = itemReg.exec(opfText)) !== null) {
-      let s = im;
+      let s = im[0];
       let idMatch = s.match(/id\s*=\s*["']([^"']+)["']/i), hrefMatch = s.match(/href\s*=\s*["']([^"']+)["']/i), mediaMatch = s.match(/media-type\s*=\s*["']([^"']+)["']/i);
-      if(idMatch && hrefMatch) manifest[idMatch] = { href: decodeURIComponent(hrefMatch), media: mediaMatch ? mediaMatch : "" };
+      if(idMatch && hrefMatch) manifest[idMatch[1]] = { href: decodeURIComponent(hrefMatch[1]), media: mediaMatch ? mediaMatch[1] : "" };
     }
     chapters = [];
     let refReg = /<itemref\b[^>]*idref\s*=\s*["']([^"']+)["'][^>]*>/gi, rm;
     while ((rm = refReg.exec(opfText)) !== null) {
-      let idref = rm, item = manifest[idref];
+      let idref = rm[1], item = manifest[idref];
       if(!item || !/xhtml|html|xml/i.test(item.media)) continue;
       let fullPath = norm(basePath + item.href);
       let matchKey = Object.keys(entries).find(k => norm(k).toLowerCase() === fullPath.toLowerCase());
@@ -360,7 +353,7 @@ async function openBook(file){
           }
         });
         let titleMatch = htmlText.match(/<title[^>]*>([\s\S]*?)<\/title>/i), h1Match = htmlText.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-        let cleanTitle = (titleMatch ? titleMatch : null) || (h1Match ? h1Match : null) || "Chapter " + (chapters.length + 1);
+        let cleanTitle = (titleMatch ? titleMatch[1] : null) || (h1Match ? h1Match[1] : null) || "Chapter " + (chapters.length + 1);
         chapters.push({ html: docEl.body.innerHTML, name: strip(cleanTitle), bookName: file.name });
       }
     }
@@ -369,13 +362,13 @@ async function openBook(file){
     let savedPos = localStorage.getItem("epub-pos-" + file.name);
     if (savedPos) {
       let parts = savedPos.split(":");
-      idx = parseInt(parts) || 0; currentColumnPage = parseInt(parts) || 0;
+      idx = parseInt(parts[0]) || 0; currentColumnPage = parseInt(parts[1]) || 0;
     } else { idx = 0; currentColumnPage = 0; }
     show(idx, true);
-    ["drop"].forEach(id => document.getElementById(id).classList.add("hidden"));
+    document.getElementById("drop").classList.add("hidden");
     document.body.classList.add("app-hidden");
   } catch(e) {
-    \$("title").textContent = "Local EPUB Reader";
+    document.getElementById("title").textContent = "Local EPUB Reader";
     alert("Error reading file: " + e.message);
   }
 }
@@ -383,18 +376,18 @@ async function openBook(file){
 function strip(s){let d=document.createElement("div");d.innerHTML=s;return d.textContent.trim()}
 function norm(p){let a=[];for(let x of p.replace(/\\/g, '/').split("/")){if(!x||x==".")continue;x===".."?a.pop():a.push(x)}return a.join("/")}
 function buildToc(){
-  \$("toc").innerHTML = "";
+  document.getElementById("toc").innerHTML = "";
   chapters.forEach((c, i) => {
     let b = document.createElement("button"); b.className = "chapter"; b.textContent = c.name;
-    b.onclick = () => { \$("drawer").classList.remove("open"); show(i, false); };
-    \$("toc").appendChild(b);
+    b.onclick = () => { document.getElementById("drawer").classList.remove("open"); show(i, false); };
+    document.getElementById("toc").appendChild(b);
   });
 }
 function show(i, useSavedPagePos = false){
   if(i < 0 || i >= chapters.length) return;
   idx = i;
-  \$("reader").innerHTML = chapters[idx].html;
-  \$("title").textContent = chapters[idx].name;
+  document.getElementById("reader").innerHTML = chapters[idx].html;
+  document.getElementById("title").textContent = chapters[idx].name;
   document.querySelectorAll(".chapter").forEach((b, j) => b.classList.toggle("active", j === idx));
   if(!useSavedPagePos) currentColumnPage = 0;
   setTimeout(() => {
@@ -407,8 +400,8 @@ function show(i, useSavedPagePos = false){
   }, 60);
 }
 function updatePaginationMeasurements() {
-  const frame = \$("reader-frame");
-  const reader = \$("reader");
+  const frame = document.getElementById("reader-frame");
+  const reader = document.getElementById("reader");
   if(!frame || !reader) return;
   const computedStyles = window.getComputedStyle(reader);
   const colWidth = parseFloat(computedStyles.columnWidth) || frame.clientWidth;
@@ -417,8 +410,8 @@ function updatePaginationMeasurements() {
   updateStatusBarText();
 }
 function applyColumnShift() {
-  const frame = \$("reader-frame");
-  const reader = \$("reader");
+  const frame = document.getElementById("reader-frame");
+  const reader = document.getElementById("reader");
   if(!frame || !reader) return;
   const computedStyles = window.getComputedStyle(reader);
   const colWidth = parseFloat(computedStyles.columnWidth) || frame.clientWidth;
@@ -438,7 +431,7 @@ function navigatePage(direction) {
   }
 }
 function updateStatusBarText() {
-  \$("progress-text").textContent = `Section ${idx + 1} of ${chapters.length} • Page ${currentColumnPage + 1} of ${totalColumnPages}`;
+  document.getElementById("progress-text").textContent = `Section ${idx + 1} of ${chapters.length} • Page ${currentColumnPage + 1} of ${totalColumnPages}`;
 }
 window.onresize = () => {
   clearTimeout(resizeTimeout);
@@ -447,4 +440,4 @@ window.onresize = () => {
 config.apply();
 </script>
 </body>
-</html>
+</html>  
