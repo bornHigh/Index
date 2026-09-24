@@ -296,7 +296,7 @@ async function decompressDeflate(compressedBytes) {
 async function openBook(fileList){
   const file = fileList[0];
   try {
-    \$("title").textContent = "Opening " + file.name + "…";
+    $("title").textContent = "Opening " + file.name + "…";
     const arrayBuffer = await file.arrayBuffer(), view = new DataView(arrayBuffer), u8 = new Uint8Array(arrayBuffer);
     let entries = {}, offset = 0;
     while (offset < arrayBuffer.byteLength - 30) {
