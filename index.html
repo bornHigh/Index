@@ -147,30 +147,22 @@ async function openBook(fileObj) {
     }
     let ck = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/').endsWith("meta-inf/container.xml"));
     if (!ck) throw Error("Container missing.");
-    let containerText = new TextDecoder().decode(entries[ck]);
-    let opfMatch = containerText.match(/full-path\s*=\s*["']([^"']+)["']/i);
-    if (!opfMatch || !opfMatch[1]) throw Error("OPF path broken.");
-    let opfPath = opfMatch[1];
-    let opfKey = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/') === opfPath.toLowerCase());
-    if (!opfKey) throw Error("OPF data dropped.");
+    let cText = new TextDecoder().decode(entries[ck]), opfM = cText.match(/full-path\s*=\s*["']([^"']+)["']/i);
+    if (!opfM || !opfM[1]) throw Error("OPF path broken.");
+    let opfKey = Object.keys(entries).find(k => k.toLowerCase().replace(/\\/g, '/') === opfM[1].toLowerCase());
+    if (!opfKey) throw Error("OPF data missing.");
     
-    let opfText = new TextDecoder().decode(entries[opfKey]);
-    let base = opfPath.includes("/") ? opfPath.slice(0, opfPath.lastIndexOf("/") + 1) : "";
+    let opfText = new TextDecoder().decode(entries[opfKey]), base = opfM[1].includes("/") ? opfM[1].slice(0, opfM[1].lastIndexOf("/") + 1) : "";
     let manifest = {};
-    let itemReg = /<item\b([^>]*)\/>/gi, im;
-    while ((im = itemReg.exec(opfText)) !== null) {
-      let attrs = im[1];
-      let idM = attrs.match(/id\s*=\s*["']([^"']+)["']/i);
-      let hrefM = attrs.match(/href\s*=\s*["']([^"']+)["']/i);
-      let mediaM = attrs.match(/media-type\s*=\s*["']([^"']+)["']/i);
-      if (idM && hrefM) manifest[idM[1]] = { href: decodeURIComponent(hrefM[1]), media: mediaM ? mediaM[1] : "" };
-    }
+    opfText.replace(/<item\b([^>]+)/gi, (m, attrs) => {
+      let idM = attrs.match(/id\s*=\s*["']([^"']+)["']/i), hrefM = attrs.match(/href\s*=\s*["']([^"']+)["']/i), mediaM = attrs.match(/media-type\s*=\s*["']([^"']+)["']/i);
+      if (idM && idM[1] && hrefM && hrefM[1]) manifest[idM[1]] = { href: decodeURIComponent(hrefM[1]), media: mediaM ? mediaM[1] : "" };
+    });
     
     chapters = [];
-    let refReg = /<itemref\b([^>]*)\/>/gi, rm;
-    while ((rm = refReg.exec(opfText)) !== null) {
-      let idrefM = rm[1].match(/idref\s*=\s*["']([^"']+)["']/i); if (!idrefM) continue;
-      let item = manifest[idrefM[1]]; if (!item || !/xhtml|html|xml/i.test(item.media)) continue;
+    opfText.replace(/<itemref\b([^>]+)/gi, (m, attrs) => {
+      let idrefM = attrs.match(/idref\s*=\s*["']([^"']+)["']/i); if (!idrefM || !idrefM[1] || !manifest[idrefM[1]]) return;
+      let item = manifest[idrefM[1]]; if (!/xhtml|html|xml/i.test(item.media)) return;
       let path = norm(base + item.href), mk = Object.keys(entries).find(k => norm(k).toLowerCase() === path.toLowerCase());
       if (mk) {
         let htmlStr = new TextDecoder().decode(entries[mk]), parser = new DOMParser(), docEl = parser.parseFromString(htmlStr, "text/html");
@@ -193,7 +185,7 @@ async function openBook(fileObj) {
         }
         chapters.push({ html: docEl.body.innerHTML, name: cName, bName: fileObj.name });
       }
-    }
+    });
     if (!chapters.length) throw Error("No readable layers.");
     buildToc();
     let saved = localStorage.getItem("ep-pos-" + fileObj.name);
@@ -260,4 +252,3 @@ config.apply();
 </script>
 </body>
 </html>
-
